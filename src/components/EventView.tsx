@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
@@ -11,9 +11,21 @@ const EventView = () => {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Fetch current user data
+    const fetchUserData = async () => {
+      if (auth.currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        if (userDoc.exists()) {
+          setUserData(userDoc.data());
+        }
+      }
+    };
+    fetchUserData();
+
     if (id) {
       const eventDoc = doc(db, 'events', id);
       const unsubscribe = onSnapshot(eventDoc, (snap) => {
@@ -28,9 +40,31 @@ const EventView = () => {
 
   const handleVote = async () => {
     if (!vote) return;
+    
+    const userName = userData?.name || auth.currentUser?.email || 'Anonymous';
+    const userId = auth.currentUser?.uid || 'anonymous';
+    
+    // Handle both old (number) and new (object) vote formats
     const newVotes = { ...event.votes };
-    if (!newVotes[vote]) newVotes[vote] = 0;
-    newVotes[vote]++;
+    
+    // Convert old format to new format if needed
+    if (!newVotes[vote]) {
+      newVotes[vote] = { count: 0, voters: [] };
+    } else if (typeof newVotes[vote] === 'number') {
+      // Migrate old format to new format
+      newVotes[vote] = { count: newVotes[vote], voters: [] };
+    }
+    
+    // Check if user already voted for this option
+    const hasVoted = newVotes[vote].voters?.some((v: any) => v.id === userId);
+    if (hasVoted) {
+      alert('You have already voted for this option!');
+      return;
+    }
+    
+    newVotes[vote].count = (newVotes[vote].count || 0) + 1;
+    newVotes[vote].voters = [...(newVotes[vote].voters || []), { id: userId, name: userName }];
+    
     await updateDoc(doc(db, 'events', id!), { votes: newVotes });
     setVote('');
   };
@@ -39,7 +73,7 @@ const EventView = () => {
     if (!comment.trim()) return;
     const newComment = {
       text: comment,
-      author: auth.currentUser?.email || 'Anonymous',
+      author: userData?.name || auth.currentUser?.email || 'Anonymous',
       timestamp: new Date().toISOString(),
     };
     await updateDoc(doc(db, 'events', id!), { 
@@ -55,6 +89,12 @@ const EventView = () => {
   };
 
   const handleDeleteEvent = async () => {
+    // Only admins or event host can delete
+    if (userData?.role !== 'admin' && event?.hostId !== auth.currentUser?.uid) {
+      alert('Only admins or the event host can delete events');
+      return;
+    }
+    
     if (window.confirm(`Are you sure you want to delete "${event?.name}"? This action cannot be undone.`)) {
       try {
         await deleteDoc(doc(db, 'events', id!));
@@ -68,7 +108,7 @@ const EventView = () => {
 
   const chartData = event?.dateOptions?.map((opt: string) => ({ 
     name: opt, 
-    votes: event.votes[opt] || 0 
+    votes: event.votes[opt]?.count || event.votes[opt] || 0 
   })) || [];
 
   const COLORS = ['#14b8a6', '#06b6d4', '#0891b2', '#0e7490', '#0d9488'];
@@ -102,7 +142,8 @@ const EventView = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {event?.hostId === auth.currentUser?.uid && (
+              {/* Only show delete button for admins or event host */}
+              {(userData?.role === 'admin' || event?.hostId === auth.currentUser?.uid) && (
                 <button
                   onClick={handleDeleteEvent}
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all duration-200 shadow-md"
@@ -271,7 +312,12 @@ const EventView = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-teal-50">Total Votes</span>
-                    <span className="text-2xl font-bold">{String(Object.values(event.votes || {}).reduce((a: any, b: any) => Number(a) + Number(b), 0))}</span>
+                    <span className="text-2xl font-bold">
+                      {String(Object.values(event.votes || {}).reduce((a: any, b: any) => {
+                        const bCount = typeof b === 'object' ? b.count : b;
+                        return Number(a) + Number(bCount || 0);
+                      }, 0))}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-teal-50">Comments</span>
@@ -310,23 +356,49 @@ const EventView = () => {
                 </div>
               )}
 
-              {/* Date Options List */}
+              {/* Date Options List with Voters */}
               <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
                   <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  Date Options
+                  Date Options & Voters
                 </h3>
-                <ul className="space-y-2">
-                  {event.dateOptions?.map((opt: string, i: number) => (
-                    <li key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <span className="text-gray-700 font-medium">{opt}</span>
-                      <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold">
-                        {event.votes[opt] || 0} votes
-                      </span>
-                    </li>
-                  ))}
+                <ul className="space-y-3">
+                  {event.dateOptions?.map((opt: string, i: number) => {
+                    const voteData = event.votes[opt];
+                    const voteCount = typeof voteData === 'object' ? voteData.count : voteData || 0;
+                    const voters = typeof voteData === 'object' ? voteData.voters : [];
+                    
+                    return (
+                      <li key={i} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-gray-700 font-medium">{opt}</span>
+                          <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold">
+                            {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+                          </span>
+                        </div>
+                        {voters && voters.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <p className="text-xs text-gray-500 mb-2 font-medium">Voted by:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {voters.map((voter: any, vIdx: number) => (
+                                <span 
+                                  key={vIdx} 
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-teal-200 rounded-full text-xs text-gray-700"
+                                >
+                                  <div className="w-4 h-4 bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                                    {voter.name?.[0]?.toUpperCase() || 'U'}
+                                  </div>
+                                  {voter.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>

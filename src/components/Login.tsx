@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
@@ -32,7 +33,17 @@ const Login = () => {
     setError('');
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      // Check if user data exists, if not create it
+      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      if (!userDoc.exists()) {
+        await setDoc(doc(db, 'users', result.user.uid), {
+          name: result.user.displayName || 'User',
+          email: result.user.email,
+          role: 'user',
+          createdAt: new Date()
+        });
+      }
       navigate('/dashboard');
     } catch (error: any) {
       setError(error.message || 'Failed to login with Google');
@@ -46,8 +57,8 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-teal-300 to-purple-300 bg-clip-text text-transparent mb-2">PlanTogether</h1>
-          <p className="text-white/90 text-lg">Collaborate. Plan. Succeed.</p>
+          <h1 className="text-5xl font-bold text-black mb-2 px-8">PlanTogether</h1>
+          <p className="text-white text-xl pt-2 font-medium">Collaborate. Plan. Succeed.</p>
         </div>
 
         {/* Login Card */}

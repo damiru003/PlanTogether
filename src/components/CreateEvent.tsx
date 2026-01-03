@@ -1,17 +1,51 @@
 import { useForm } from 'react-hook-form';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useNavigate, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type FormData = { name: string; description: string; dateOptions: string; items: string };
 
 const CreateEvent = () => {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
   const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [checkingPermission, setCheckingPermission] = useState(true);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const checkPermission = async () => {
+      if (!auth.currentUser) {
+        navigate('/');
+        return;
+      }
+      
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setUserData(data);
+        
+        // Only admins can create events
+        if (data.role !== 'admin') {
+          alert('Only admins can create events');
+          navigate('/dashboard');
+          return;
+        }
+      }
+      setCheckingPermission(false);
+    };
+    
+    checkPermission();
+  }, [navigate]);
+
   const onSubmit = async (data: FormData) => {
+    // Double-check permission
+    if (userData?.role !== 'admin') {
+      alert('Only admins can create events');
+      navigate('/dashboard');
+      return;
+    }
+    
     setLoading(true);
     try {
       const event = {
@@ -19,10 +53,11 @@ const CreateEvent = () => {
         dateOptions: data.dateOptions.split(',').map(d => d.trim()).filter(d => d),
         items: data.items ? data.items.split(',').map(i => i.trim()).filter(i => i) : [],
         hostId: auth.currentUser?.uid,
+        hostName: userData?.name || auth.currentUser?.email,
         votes: {},
         comments: [],
         participants: [],
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       };
       const docRef = await addDoc(collection(db, 'events'), event);
       navigate(`/event/${docRef.id}`);
@@ -32,6 +67,17 @@ const CreateEvent = () => {
       setLoading(false);
     }
   };
+
+  if (checkingPermission) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <svg className="animate-spin h-10 w-10 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

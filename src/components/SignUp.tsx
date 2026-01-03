@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 
 const SignUp = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
     }
@@ -27,7 +30,14 @@ const SignUp = () => {
     setLoading(true);
     setError('');
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Store user data in Firestore
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        name,
+        email,
+        role,
+        createdAt: new Date()
+      });
       navigate('/dashboard');
     } catch (error: any) {
       setError(error.message || 'Failed to create account');
@@ -41,7 +51,14 @@ const SignUp = () => {
     setError('');
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      // Store user data in Firestore
+      await setDoc(doc(db, 'users', result.user.uid), {
+        name: result.user.displayName || 'User',
+        email: result.user.email,
+        role: 'user', // Default to user role for Google sign-up
+        createdAt: new Date()
+      });
       navigate('/dashboard');
     } catch (error: any) {
       setError(error.message || 'Failed to sign up with Google');
@@ -55,8 +72,8 @@ const SignUp = () => {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-teal-300 to-purple-300 bg-clip-text text-transparent mb-2">PlanTogether</h1>
-          <p className="text-white/90 text-lg">Start planning with your team</p>
+          <h1 className="text-5xl font-bold text-black mb-2 px-8">PlanTogether</h1>
+          <p className="text-white text-xl pt-2 font-medium">Collaborate. Plan. Succeed.</p>
         </div>
 
         {/* Sign Up Card */}
@@ -71,6 +88,16 @@ const SignUp = () => {
 
           <div className="space-y-4 mb-6">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200"
+              />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
               <input
                 type="email"
@@ -79,6 +106,33 @@ const SignUp = () => {
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <div className="flex gap-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    value="user"
+                    checked={role === 'user'}
+                    onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
+                    className="w-4 h-4 text-teal-600 focus:ring-teal-500"
+                  />
+                  <span className="ml-2 text-gray-700 font-medium">User</span>
+                  <span className="ml-2 text-xs text-gray-500">(Vote & Comment)</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    value="admin"
+                    checked={role === 'admin'}
+                    onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
+                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="ml-2 text-gray-700 font-medium">Admin</span>
+                  <span className="ml-2 text-xs text-gray-500">(Full Control)</span>
+                </label>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>

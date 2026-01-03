@@ -1,35 +1,61 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  const [userData, setUserData] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      if (!user) navigate('/');
-    });
+    const initializeDashboard = async () => {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          navigate('/');
+        } else {
+          // Fetch user data from Firestore
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+          }
+        }
+      });
 
-    const q = query(collection(db, 'events'), where('hostId', '==', auth.currentUser?.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setEvents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
+      // Both admins and users see all events
+      let q;
+      if (auth.currentUser) {
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnapshot = await getDoc(userDocRef);
+        const currentUserRole = userSnapshot.data()?.role;
+        
+        // Both roles see all events
+        q = query(collection(db, 'events'));
+        
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          setEvents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          setLoading(false);
+        });
 
-    // Update current date/time every minute
-    const timeInterval = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 60000);
+        // Update current date/time every minute
+        const timeInterval = setInterval(() => {
+          setCurrentDateTime(new Date());
+        }, 60000);
 
-    return () => {
-      unsubscribe();
-      clearInterval(timeInterval);
+        return () => {
+          unsubscribe();
+          clearInterval(timeInterval);
+        };
+      }
     };
+
+    initializeDashboard();
   }, [navigate]);
 
   const handleLogout = async () => {
@@ -40,14 +66,40 @@ const Dashboard = () => {
   const handleDeleteEvent = async (eventId: string, eventName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete "${eventName}"? This action cannot be undone.`)) {
-      try {
-        await deleteDoc(doc(db, 'events', eventId));
-      } catch (error) {
-        console.error('Error deleting event:', error);
-        alert('Failed to delete event. Please try again.');
-      }
+    
+    // Only admins can delete events
+    if (userData?.role !== 'admin') {
+      alert('Only admins can delete events');
+      return;
     }
+    
+    // Show confirmation modal
+    setEventToDelete({ id: eventId, name: eventName });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!eventToDelete) return;
+    
+    try {
+      await deleteDoc(doc(db, 'events', eventToDelete.id));
+      setShowDeleteModal(false);
+      setEventToDelete(null);
+      
+      // Show success message
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Failed to delete event. Please try again.');
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setEventToDelete(null);
   };
 
   return (
@@ -70,9 +122,20 @@ const Dashboard = () => {
 
             {/* Center Greeting */}
             <div className="hidden md:block">
-              <p className="text-gray-500 font-medium">
-                Welcome back, {auth.currentUser?.email?.split('@')[0]}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-gray-500 font-medium">
+                  Welcome back, {userData?.name || auth.currentUser?.email?.split('@')[0]}
+                </p>
+                {userData?.role && (
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    userData.role === 'admin' 
+                      ? 'bg-purple-100 text-purple-700' 
+                      : 'bg-teal-100 text-teal-700'
+                  }`}>
+                    {userData.role}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Date & Time Display */}
@@ -126,23 +189,29 @@ const Dashboard = () => {
         <div className="flex items-start justify-between mb-10 gap-6">
           <div>
             <h2 className="text-5xl font-bold text-gray-900 mb-3" style={{ color: '#1f2937' }}>
-              Your Events
+              {userData?.role === 'admin' ? 'Your Events' : 'Available Events'}
             </h2>
             <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-teal-400 rounded-full mb-4"></div>
-            <p className="text-gray-500 text-lg">Manage and track all your planning activities</p>
+            <p className="text-gray-500 text-lg">
+              {userData?.role === 'admin' 
+                ? 'Manage and track all your planning activities' 
+                : 'View and participate in events'}
+            </p>
           </div>
 
-          {/* Create Button */}
-          <Link
-            to="/create-event"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg whitespace-nowrap"
-            style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' }}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Create New Event
-          </Link>
+          {/* Create Button - Only for admins */}
+          {userData?.role === 'admin' && (
+            <Link
+              to="/create-event"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg whitespace-nowrap"
+              style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Create New Event
+            </Link>
+          )}
         </div>
 
         {/* Events Grid */}
@@ -163,18 +232,26 @@ const Dashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">No events yet</h3>
-            <p className="text-gray-500 text-lg mb-8 max-w-md mx-auto">Start planning by creating your first event and collaborate with your team</p>
-            <Link
-              to="/create-event"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 transform transition-all duration-200 hover:scale-[1.02] shadow-lg hover:shadow-xl"
-              style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' }}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Create Your First Event
-            </Link>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              {userData?.role === 'admin' ? 'No events yet' : 'No events available'}
+            </h3>
+            <p className="text-gray-500 text-lg mb-8 max-w-md mx-auto">
+              {userData?.role === 'admin' 
+                ? 'Start planning by creating your first event and collaborate with your team' 
+                : 'No events have been created yet. Check back later!'}
+            </p>
+            {userData?.role === 'admin' && (
+              <Link
+                to="/create-event"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 transform transition-all duration-200 hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Create Your First Event
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -277,23 +354,133 @@ const Dashboard = () => {
                     </div>
                   </Link>
 
-                  {/* Delete Button - Outside the card */}
-                  <button
-                    onClick={(e) => handleDeleteEvent(event.id, event.name, e)}
-                    className="mt-3 w-full px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-200 hover:border-red-300"
-                    title="Delete event"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete Event
-                  </button>
+                  {/* Delete Button - Only for admins */}
+                  {userData?.role === 'admin' && (
+                    <button
+                      onClick={(e) => handleDeleteEvent(event.id, event.name, e)}
+                      className="mt-3 w-full px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-200 hover:border-red-300"
+                      title="Delete event"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Event
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
       </main>
+
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50">
+          <div 
+            className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 transform transition-all duration-300 ease-out"
+            style={{ animation: 'slideInRight 0.3s ease-out' }}
+          >
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-semibold">Event Deleted Successfully!</p>
+              <p className="text-sm text-green-100">The event has been removed from your dashboard.</p>
+            </div>
+            <button 
+              onClick={() => setShowSuccessMessage(false)}
+              className="ml-4 text-green-100 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300 ease-out"
+            onClick={cancelDelete}
+            style={{ animation: 'fadeIn 0.3s ease-out' }}
+          ></div>
+
+          {/* Modal */}
+          <div className="flex min-h-screen items-center justify-center p-4">
+            <div 
+              className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all duration-300 ease-out"
+              style={{ animation: 'slideIn 0.3s ease-out' }}
+            >
+              {/* Icon */}
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+
+              {/* Content */}
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Delete Event
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to delete <span className="font-semibold text-gray-900">"{eventToDelete?.name}"</span>? This action cannot be undone.
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all duration-200 hover:shadow-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { 
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+          }
+          to { 
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        @keyframes slideInRight {
+          from { 
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };
