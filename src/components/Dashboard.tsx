@@ -7,6 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 const Dashboard = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,7 +21,15 @@ const Dashboard = () => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Update current date/time every minute
+    const timeInterval = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 60000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(timeInterval);
+    };
   }, [navigate]);
 
   const handleLogout = async () => {
@@ -66,6 +75,34 @@ const Dashboard = () => {
               </p>
             </div>
 
+            {/* Date & Time Display */}
+            <div className="hidden lg:flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="font-medium">
+                  {currentDateTime.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">
+                  {currentDateTime.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                  })}
+                </span>
+              </div>
+            </div>
+
             {/* Logout Button */}
             <button
               onClick={handleLogout}
@@ -85,20 +122,20 @@ const Dashboard = () => {
 
       {/* Main Content with top padding for fixed header */}
       <main className="max-w-5xl mx-auto px-6 pt-28 pb-12">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h2 className="text-5xl font-bold text-gray-900 mb-3" style={{ color: '#1f2937' }}>
-            Your Events
-          </h2>
-          <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-teal-400 rounded-full mb-4"></div>
-          <p className="text-gray-500 text-lg">Manage and track all your planning activities</p>
-        </div>
+        {/* Page Title and Create Button */}
+        <div className="flex items-start justify-between mb-10 gap-6">
+          <div>
+            <h2 className="text-5xl font-bold text-gray-900 mb-3" style={{ color: '#1f2937' }}>
+              Your Events
+            </h2>
+            <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-teal-400 rounded-full mb-4"></div>
+            <p className="text-gray-500 text-lg">Manage and track all your planning activities</p>
+          </div>
 
-        {/* Create Button */}
-        <div className="mb-10">
+          {/* Create Button */}
           <Link
             to="/create-event"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg whitespace-nowrap"
             style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -146,6 +183,18 @@ const Dashboard = () => {
               const dateOptionsCount = event.dateOptions?.length || 0;
               const participantsCount = event.participants?.length || 0;
               const commentsCount = event.comments?.length || 0;
+              
+              // Format event creation date/time
+              const eventDate = event.createdAt?.toDate?.() || new Date();
+              const formattedDate = eventDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric'
+              });
+              const formattedTime = eventDate.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit'
+              });
 
               return (
                 <div key={event.id} className="group">
@@ -171,6 +220,24 @@ const Dashboard = () => {
                       <p className="text-gray-500 text-sm mb-6 line-clamp-2">
                         {event.description || 'No description'}
                       </p>
+
+                      {/* Date & Time Created */}
+                      <div className="mb-4 p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-100">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="font-semibold text-gray-700">{formattedDate}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-semibold text-gray-700">{formattedTime}</span>
+                          </div>
+                        </div>
+                      </div>
 
                       {/* Stats Row */}
                       <div className="space-y-2.5">
