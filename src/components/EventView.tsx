@@ -71,7 +71,7 @@ const EventView = () => {
     votes: event.votes[opt] || 0 
   })) || [];
 
-  const COLORS = ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981'];
+  const COLORS = ['#14b8a6', '#06b6d4', '#0891b2', '#0e7490', '#0d9488'];
 
   if (loading) {
     return (
@@ -85,7 +85,7 @@ const EventView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -97,7 +97,7 @@ const EventView = () => {
                 </svg>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{event?.name}</h1>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">PlanTogether</h1>
                 <p className="text-sm text-gray-500">Event Details & Voting</p>
               </div>
             </div>
@@ -115,7 +115,7 @@ const EventView = () => {
               )}
               <button
                 onClick={copyShareLink}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-md"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-semibold rounded-full hover:from-teal-600 hover:to-cyan-700 hover:shadow-lg transition-all duration-200 shadow-md"
               >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -129,24 +129,20 @@ const EventView = () => {
 
       {event && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Centered Title with Gradient Underline */}
+          <div className="text-center mb-12">
+            <h1 className="text-5xl font-bold text-gray-900 mb-3">{event.name}</h1>
+            <div className="h-1 w-32 mx-auto bg-gradient-to-r from-teal-500 to-purple-600 rounded-full mb-6"></div>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">{event.description || 'No description provided'}</p>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Event Info & Voting */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Event Description */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Description
-                </h2>
-                <p className="text-gray-700 leading-relaxed">{event.description || 'No description provided'}</p>
-              </div>
-
               {/* Voting Section */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                   Vote on Date
@@ -155,7 +151,7 @@ const EventView = () => {
                   <select
                     value={vote}
                     onChange={(e) => setVote(e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all duration-200"
                   >
                     <option value="">Select a date option...</option>
                     {event.dateOptions?.map((opt: string) => (
@@ -165,7 +161,7 @@ const EventView = () => {
                   <button
                     onClick={handleVote}
                     disabled={!vote}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-full hover:from-purple-700 hover:to-purple-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
                   >
                     Vote
                   </button>
@@ -173,9 +169,9 @@ const EventView = () => {
               </div>
 
               {/* Voting Results Chart */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Voting Results
@@ -209,9 +205,9 @@ const EventView = () => {
               </div>
 
               {/* Comments Section */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
                   Comments ({event.comments?.length || 0})
@@ -240,7 +236,7 @@ const EventView = () => {
                       <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                            <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                               {typeof c === 'string' ? 'A' : c.author?.[0]?.toUpperCase() || 'A'}
                             </div>
                             <div>
@@ -270,23 +266,23 @@ const EventView = () => {
             {/* Right Column - Stats & Info */}
             <div className="space-y-6">
               {/* Quick Stats */}
-              <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl shadow-lg p-6 text-white">
                 <h3 className="text-lg font-semibold mb-4">Event Stats</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-purple-100">Total Votes</span>
+                    <span className="text-teal-50">Total Votes</span>
                     <span className="text-2xl font-bold">{String(Object.values(event.votes || {}).reduce((a: any, b: any) => Number(a) + Number(b), 0))}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-purple-100">Comments</span>
+                    <span className="text-teal-50">Comments</span>
                     <span className="text-2xl font-bold">{event.comments?.length || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-purple-100">Date Options</span>
+                    <span className="text-teal-50">Date Options</span>
                     <span className="text-2xl font-bold">{event.dateOptions?.length || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-purple-100">Participants</span>
+                    <span className="text-teal-50">Participants</span>
                     <span className="text-2xl font-bold">{event.participants?.length || 0}</span>
                   </div>
                 </div>
@@ -294,9 +290,9 @@ const EventView = () => {
 
               {/* Items/Activities */}
               {event.items && event.items.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                     Items & Activities
@@ -315,9 +311,9 @@ const EventView = () => {
               )}
 
               {/* Date Options List */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   Date Options
@@ -326,7 +322,7 @@ const EventView = () => {
                   {event.dateOptions?.map((opt: string, i: number) => (
                     <li key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                       <span className="text-gray-700 font-medium">{opt}</span>
-                      <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                      <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold">
                         {event.votes[opt] || 0} votes
                       </span>
                     </li>
