@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -26,6 +26,19 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/');
+  };
+
+  const handleDeleteEvent = async (eventId: string, eventName: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete "${eventName}"? This action cannot be undone.`)) {
+      try {
+        await deleteDoc(doc(db, 'events', eventId));
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        alert('Failed to delete event. Please try again.');
+      }
+    }
   };
 
   return (
@@ -121,10 +134,21 @@ const Dashboard = () => {
                           </h3>
                           <p className="text-gray-600 text-sm line-clamp-2">{event.description || 'No description'}</p>
                         </div>
-                        <div className="ml-3 bg-purple-100 group-hover:bg-purple-200 p-2 rounded-lg transition-colors">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleDeleteEvent(event.id, event.name, e)}
+                          className="p-2 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
+                          title="Delete event"
+                        >
+                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                        <div className="bg-purple-100 group-hover:bg-purple-200 p-2 rounded-lg transition-colors">
                           <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
+                        </div>
                         </div>
                       </div>
                       

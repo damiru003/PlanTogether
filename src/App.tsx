@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, Transition } from 'framer-motion';
 import Login from './components/Login';
+import SignUp from './components/SignUp';
 import Dashboard from './components/Dashboard';
 import CreateEvent from './components/CreateEvent';
 import EventView from './components/EventView';
@@ -44,6 +45,21 @@ const AnimatedRoutes = () => {
               className="min-h-screen bg-gray-100"
             >
               <Login />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              className="min-h-screen bg-gray-100"
+            >
+              <SignUp />
             </motion.div>
           }
         />
