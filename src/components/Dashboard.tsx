@@ -6,12 +6,16 @@ import { useNavigate, Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [events, setEvents] = useState<any[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [userData, setUserData] = useState<any>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<{ id: string; name: string } | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'popularity' | 'name'>('date');
+  const [filterCategory, setFilterCategory] = useState<'all' | 'social' | 'work' | 'celebration'>('all');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,7 +43,9 @@ const Dashboard = () => {
         q = query(collection(db, 'events'));
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
-          setEvents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          const eventsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setEvents(eventsList);
+          setFilteredEvents(eventsList);
           setLoading(false);
         });
 
@@ -57,6 +63,79 @@ const Dashboard = () => {
 
     initializeDashboard();
   }, [navigate]);
+
+  // Filter and sort events
+  useEffect(() => {
+    let filtered = [...events];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(event =>
+        event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Category filter
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(event => event.category === filterCategory);
+    }
+
+    // Sorting
+    if (sortBy === 'date') {
+      filtered.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+    } else if (sortBy === 'popularity') {
+      filtered.sort((a, b) => {
+        const votesA = Object.values(a.votes || {}).reduce((acc: any, val: any) => Number(acc) + Number(val), 0) as number;
+        const votesB = Object.values(b.votes || {}).reduce((acc: any, val: any) => Number(acc) + Number(val), 0) as number;
+        return votesB - votesA;
+      });
+    } else if (sortBy === 'name') {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    setFilteredEvents(filtered);
+  }, [events, searchQuery, sortBy, filterCategory]);
+
+  const getEventCategory = (event: any): 'social' | 'work' | 'celebration' => {
+    // Intelligent category detection based on keywords
+    const text = `${event.name} ${event.description || ''}`.toLowerCase();
+    if (text.match(/birthday|party|celebration|anniversary|wedding/)) return 'celebration';
+    if (text.match(/meeting|project|work|deadline|presentation/)) return 'work';
+    return 'social';
+  };
+
+  const getEventStatus = (event: any): 'upcoming' | 'active' | 'completed' => {
+    const now = new Date();
+    const eventDate = event.createdAt?.toDate?.() || now;
+    const daysDiff = Math.floor((now.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff > 30) return 'completed';
+    if (daysDiff > 7) return 'active';
+    return 'upcoming';
+  };
+
+  const getCategoryColor = (category: 'social' | 'work' | 'celebration') => {
+    const colors = {
+      social: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+      work: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+      celebration: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200' }
+    };
+    return colors[category];
+  };
+
+  const getStatusColor = (status: 'upcoming' | 'active' | 'completed') => {
+    const colors = {
+      upcoming: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
+      active: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
+      completed: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' }
+    };
+    return colors[status];
+  };
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -120,21 +199,27 @@ const Dashboard = () => {
               </h1>
             </div>
 
-            {/* Center Greeting */}
-            <div className="hidden md:block">
-              <div className="flex items-center gap-2">
-                <p className="text-gray-500 font-medium">
-                  Welcome back, {userData?.name || auth.currentUser?.email?.split('@')[0]}
-                </p>
-                {userData?.role && (
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                    userData.role === 'admin' 
-                      ? 'bg-purple-100 text-purple-700' 
-                      : 'bg-teal-100 text-teal-700'
-                  }`}>
-                    {userData.role}
-                  </span>
-                )}
+            {/* Center Greeting with Avatar */}
+            <div className="hidden md:flex items-center gap-4">
+              {/* User Avatar */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md ring-2 ring-white">
+                  {userData?.name?.charAt(0).toUpperCase() || auth.currentUser?.email?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-gray-900 font-bold text-base">
+                    {userData?.name || auth.currentUser?.email?.split('@')[0]}
+                  </p>
+                  {userData?.role && (
+                    <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${
+                      userData.role === 'admin' 
+                        ? 'bg-purple-100 text-purple-700' 
+                        : 'bg-teal-100 text-teal-700'
+                    }`}>
+                      {userData.role.toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -184,7 +269,53 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content with top padding for fixed header */}
-      <main className="max-w-5xl mx-auto px-6 pt-28 pb-12">
+      <main className="max-w-7xl mx-auto px-6 pt-28 pb-12">
+        {/* Search and Filter Bar */}
+        <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search Bar */}
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search events by name or description..."
+                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base"
+              />
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex gap-3">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base font-medium bg-white cursor-pointer"
+              >
+                <option value="date">Sort by Date</option>
+                <option value="popularity">Sort by Votes</option>
+                <option value="name">Sort by Name</option>
+              </select>
+
+              {/* Filter Category */}
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value as any)}
+                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base font-medium bg-white cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                <option value="social">Social</option>
+                <option value="work">Work</option>
+                <option value="celebration">Celebration</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Page Title and Create Button */}
         <div className="flex items-start justify-between mb-10 gap-6">
           <div>
@@ -216,13 +347,27 @@ const Dashboard = () => {
 
         {/* Events Grid */}
         {loading ? (
-          <div className="flex justify-center items-center py-24">
-            <svg className="animate-spin h-12 w-12 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-md border border-gray-100 p-8 animate-pulse">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="h-8 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+                </div>
+                <div className="space-y-3 mb-6">
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                </div>
+                <div className="h-16 bg-gray-100 rounded-lg mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
           </div>
-        ) : events.length === 0 ? (
+        ) : filteredEvents.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-2xl shadow-sm border border-gray-100">
             <div className="inline-flex items-center justify-center mb-6">
               <svg className="w-24 h-24 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
@@ -233,14 +378,16 @@ const Dashboard = () => {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              {userData?.role === 'admin' ? 'No events yet' : 'No events available'}
+              {searchQuery || filterCategory !== 'all' ? 'No events found' : (userData?.role === 'admin' ? 'No events yet' : 'No events available')}
             </h3>
             <p className="text-gray-500 text-lg mb-8 max-w-md mx-auto">
-              {userData?.role === 'admin' 
-                ? 'Start planning by creating your first event and collaborate with your team' 
-                : 'No events have been created yet. Check back later!'}
+              {searchQuery || filterCategory !== 'all' 
+                ? 'Try adjusting your search or filters to find what you\'re looking for' 
+                : (userData?.role === 'admin' 
+                  ? 'Start planning by creating your first event and collaborate with your team' 
+                  : 'No events have been created yet. Check back later!')}
             </p>
-            {userData?.role === 'admin' && (
+            {userData?.role === 'admin' && !searchQuery && filterCategory === 'all' && (
               <Link
                 to="/create-event"
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 transform transition-all duration-200 hover:scale-[1.02] shadow-lg hover:shadow-xl"
@@ -254,12 +401,22 @@ const Dashboard = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map(event => {
-              const totalVotes = Object.values(event.votes || {}).reduce((a: any, b: any) => Number(a) + Number(b), 0);
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredEvents.map(event => {
+              const totalVotes = Object.values(event.votes || {}).reduce((a: any, b: any) => {
+                const aVal = typeof a === 'object' ? a.count || 0 : Number(a) || 0;
+                const bVal = typeof b === 'object' ? b.count || 0 : Number(b) || 0;
+                return aVal + bVal;
+              }, 0) as number;
               const dateOptionsCount = event.dateOptions?.length || 0;
               const participantsCount = event.participants?.length || 0;
               const commentsCount = event.comments?.length || 0;
+              
+              // Get category and status
+              const category = event.category || getEventCategory(event);
+              const status = getEventStatus(event);
+              const categoryColors = getCategoryColor(category);
+              const statusColors = getStatusColor(status);
               
               // Format event creation date/time
               const eventDate = event.createdAt?.toDate?.() || new Date();
@@ -277,77 +434,103 @@ const Dashboard = () => {
                 <div key={event.id} className="group">
                   <Link
                     to={`/event/${event.id}`}
-                    className="block bg-white rounded-2xl shadow-md hover:shadow-2xl border border-gray-100 hover:border-gray-200 transition-all duration-300 overflow-hidden transform hover:-translate-y-1"
+                    className="block bg-white rounded-2xl shadow-md hover:shadow-2xl border-2 border-gray-100 hover:border-teal-200 transition-all duration-300 overflow-hidden transform hover:-translate-y-2 hover:scale-[1.02]"
+                    style={{
+                      borderLeftWidth: '6px',
+                      borderLeftColor: category === 'social' ? '#3b82f6' : category === 'work' ? '#8b5cf6' : '#ec4899'
+                    }}
                   >
-                    {/* Card Header */}
-                    <div className="p-6 pb-4 relative">
-                      {/* Calendar Badge */}
-                      <div className="absolute top-4 right-4 bg-gradient-to-br from-teal-100 to-purple-100 p-2 rounded-lg">
-                        <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                    {/* Card Header with Gradient Overlay */}
+                    <div className="relative p-8 pb-6 bg-gradient-to-br from-teal-50/50 via-white to-purple-50/30">
+                      {/* Status & Category Badges */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex gap-2">
+                          <span className={`px-3 py-1.5 text-xs font-bold rounded-full ${statusColors.bg} ${statusColors.text} flex items-center gap-1.5`}>
+                            <span className={`w-2 h-2 rounded-full ${statusColors.dot} animate-pulse`}></span>
+                            {status.toUpperCase()}
+                          </span>
+                          <span className={`px-3 py-1.5 text-xs font-bold rounded-full ${categoryColors.bg} ${categoryColors.text}`}>
+                            {category.toUpperCase()}
+                          </span>
+                        </div>
+                        
+                        {/* Calendar Icon */}
+                        <div className="bg-gradient-to-br from-teal-500 to-purple-500 p-2.5 rounded-xl shadow-lg">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
                       </div>
 
-                      {/* Title */}
-                      <h3 className="text-2xl font-bold text-gray-900 mb-3 pr-12 group-hover:text-teal-600 transition-colors">
+                      {/* Title - Increased from 24px to 36px */}
+                      <h3 className="text-4xl font-bold text-gray-900 mb-4 pr-4 group-hover:text-teal-600 transition-colors leading-tight">
                         {event.name}
                       </h3>
 
                       {/* Description */}
-                      <p className="text-gray-500 text-sm mb-6 line-clamp-2">
-                        {event.description || 'No description'}
+                      <p className="text-gray-600 text-lg mb-6 line-clamp-2 leading-relaxed">
+                        {event.description || 'No description provided'}
                       </p>
 
-                      {/* Date & Time Created */}
-                      <div className="mb-4 p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-100">
+                      {/* Date & Time Created - Larger and Bolder */}
+                      <div className="mb-6 p-4 bg-gradient-to-r from-teal-100 to-cyan-100 rounded-xl border-2 border-teal-200 shadow-sm">
                         <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-2 text-sm">
-                            <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <div className="flex items-center gap-2.5">
+                            <svg className="w-6 h-6 text-teal-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="font-semibold text-gray-700">{formattedDate}</span>
+                            <span className="font-bold text-gray-900 text-lg">{formattedDate}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <div className="flex items-center gap-2.5">
+                            <svg className="w-6 h-6 text-teal-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span className="font-semibold text-gray-700">{formattedTime}</span>
+                            <span className="font-bold text-gray-900 text-lg">{formattedTime}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Stats Row */}
-                      <div className="space-y-2.5">
-                        <div className="flex items-center gap-2.5 text-sm text-gray-600">
-                          <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      {/* Stats Row - Larger Icons and Text */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-base text-gray-700">
+                          <svg className="w-6 h-6 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          <span className="font-medium">{dateOptionsCount} date options</span>
+                          <span className="font-bold">{dateOptionsCount} date options</span>
                         </div>
-                        <div className="flex items-center gap-2.5 text-sm text-gray-600">
-                          <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <div className="flex items-center gap-3 text-base text-gray-700">
+                          <svg className="w-6 h-6 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          <span className="font-medium">{participantsCount} participants</span>
+                          <span className="font-bold">
+                            {participantsCount > 0 ? `${participantsCount} participants` : 'Be the first to join!'}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2.5 text-sm text-gray-600">
-                          <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <div className="flex items-center gap-3 text-base text-gray-700">
+                          <svg className="w-6 h-6 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                           </svg>
-                          <span className="font-medium">{commentsCount} comments</span>
+                          <span className="font-bold">
+                            {commentsCount > 0 ? `${commentsCount} comments` : 'Start the conversation'}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Bottom Bar */}
-                    <div className="bg-gradient-to-r from-teal-50 to-cyan-50 px-6 py-4 border-t border-teal-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-gray-900">Total Votes:</span>
-                        <span className="text-lg font-bold text-teal-600">{String(totalVotes)}</span>
+                    {/* Bottom Bar with Vote Progress */}
+                    <div className="bg-gradient-to-r from-teal-100 to-cyan-100 px-8 py-5 border-t-2 border-teal-200 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-6 h-6 text-teal-700" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                        </svg>
+                        <div>
+                          <span className="text-sm font-bold text-gray-700 block">Total Votes</span>
+                          <span className="text-2xl font-bold text-teal-700">{totalVotes > 0 ? String(totalVotes) : 'No votes yet'}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-purple-600 font-semibold text-sm group-hover:gap-2.5 transition-all">
-                        <span>View Details</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <div className="flex items-center gap-2 text-purple-600 font-bold text-base group-hover:gap-3 transition-all">
+                        <span>View Event</span>
+                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                       </div>
@@ -358,10 +541,10 @@ const Dashboard = () => {
                   {userData?.role === 'admin' && (
                     <button
                       onClick={(e) => handleDeleteEvent(event.id, event.name, e)}
-                      className="mt-3 w-full px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-200 hover:border-red-300"
+                      className="mt-4 w-full px-5 py-3 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 border-2 border-red-200 hover:border-red-600 hover:shadow-lg transform hover:scale-[1.02]"
                       title="Delete event"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                       Delete Event
