@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14b8a6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Calendar background -->
+  <rect x="8" y="12" width="48" height="44" rx="6" fill="url(#grad)"/>
+  
+  <!-- Calendar top bar -->
+  <rect x="8" y="12" width="48" height="12" rx="6" fill="#0d9488"/>
+  <rect x="8" y="18" width="48" height="6" fill="#0d9488"/>
+  
+  <!-- Calendar rings -->
+  <rect x="18" y="8" width="4" height="12" rx="2" fill="#0d9488"/>
+  <rect x="42" y="8" width="4" height="12" rx="2" fill="#0d9488"/>
+  
+  <!-- Date grid -->
+  <rect x="14" y="30" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  <rect x="24" y="30" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  <rect x="34" y="30" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  <rect x="44" y="30" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  
+  <rect x="14" y="40" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  <rect x="24" y="40" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  <rect x="34" y="40" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  <rect x="44" y="40" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  
+  <rect x="14" y="50" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  <rect x="24" y="50" width="6" height="6" rx="1" fill="white" opacity="0.9"/>
+  
+  <!-- Checkmark accent -->
+  <circle cx="38" cy="53" r="8" fill="#8b5cf6"/>
+  <path d="M 34 53 L 37 56 L 42 50" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

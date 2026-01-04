@@ -230,9 +230,118 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Geometric Grid Pattern */}
+        <div className="absolute inset-0 opacity-[0.06]" style={{
+          backgroundImage: `radial-gradient(circle, #14b8a6 1px, transparent 1px)`,
+          backgroundSize: '30px 30px'
+        }}></div>
+        
+        {/* Diagonal Lines Pattern */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="diagonalLines" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="40" y2="40" stroke="#14b8a6" strokeWidth="1"/>
+              <line x1="40" y1="0" x2="0" y2="40" stroke="#8b5cf6" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#diagonalLines)"/>
+        </svg>
+
+        {/* Hexagon Tessellation */}
+        <svg className="absolute top-0 right-0 w-1/2 h-1/2 opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="hexagons" x="0" y="0" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(0.8)">
+              <polygon points="28,0 56,15 56,45 28,60 0,45 0,15" fill="none" stroke="#14b8a6" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hexagons)"/>
+        </svg>
+
+        {/* Gradient Mesh Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white via-teal-50/30 to-purple-50/20"></div>
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-cyan-100/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-purple-100/20 to-transparent rounded-full blur-3xl"></div>
+
+        {/* Abstract Blob Shapes with Blur */}
+        <div className="absolute top-20 left-10 w-[500px] h-[500px] bg-gradient-to-br from-teal-200/10 via-cyan-200/10 to-transparent rounded-full blur-[100px] animate-blob"></div>
+        <div className="absolute top-40 right-20 w-[400px] h-[400px] bg-gradient-to-br from-purple-200/10 via-pink-200/10 to-transparent rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-20 left-1/3 w-[600px] h-[600px] bg-gradient-to-br from-pink-200/8 via-purple-200/8 to-transparent rounded-full blur-[120px] animate-blob animation-delay-4000"></div>
+
+        {/* Topographic Line Art */}
+        <svg className="absolute top-1/4 left-0 w-full h-1/2 opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,100 Q150,120 300,100 T600,100 T900,100 T1200,100 T1500,100 T1800,100" fill="none" stroke="#14b8a6" strokeWidth="1"/>
+          <path d="M0,200 Q150,220 300,200 T600,200 T900,200 T1200,200 T1500,200 T1800,200" fill="none" stroke="#14b8a6" strokeWidth="1"/>
+          <path d="M0,300 Q150,320 300,300 T600,300 T900,300 T1200,300 T1500,300 T1800,300" fill="none" stroke="#8b5cf6" strokeWidth="1"/>
+        </svg>
+
+        {/* Isometric Calendar Icons */}
+        <div className="absolute top-32 right-32 opacity-[0.04] animate-float">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="6" width="18" height="15" rx="2" stroke="#14b8a6" strokeWidth="1.5"/>
+            <path d="M3 10h18M7 3v4M17 3v4" stroke="#14b8a6" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div className="absolute bottom-40 left-40 opacity-[0.05] animate-float animation-delay-2000">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" stroke="#8b5cf6" strokeWidth="1.5"/>
+            <path d="M12 6v6l4 2" stroke="#8b5cf6" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div className="absolute top-1/2 left-1/4 opacity-[0.04] animate-float animation-delay-4000">
+          <svg width="70" height="70" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" stroke="#ec4899" strokeWidth="1.5"/>
+          </svg>
+        </div>
+
+        {/* Network Nodes */}
+        <svg className="absolute top-1/3 right-1/4 w-[300px] h-[300px] opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="4" fill="#14b8a6"/>
+          <circle cx="150" cy="80" r="4" fill="#8b5cf6"/>
+          <circle cx="250" cy="60" r="4" fill="#ec4899"/>
+          <circle cx="200" cy="150" r="4" fill="#14b8a6"/>
+          <line x1="50" y1="50" x2="150" y2="80" stroke="#14b8a6" strokeWidth="1" opacity="0.5"/>
+          <line x1="150" y1="80" x2="250" y2="60" stroke="#8b5cf6" strokeWidth="1" opacity="0.5"/>
+          <line x1="150" y1="80" x2="200" y2="150" stroke="#ec4899" strokeWidth="1" opacity="0.5"/>
+        </svg>
+
+        {/* Minimalist Confetti */}
+        <div className="absolute top-20 left-1/3 w-2 h-2 bg-teal-400 rounded-full opacity-[0.15] animate-float"></div>
+        <div className="absolute top-40 right-1/4 w-3 h-3 bg-purple-400 rounded-full opacity-[0.12] animate-float animation-delay-1000"></div>
+        <div className="absolute bottom-32 left-1/2 w-2 h-2 bg-pink-400 rounded-full opacity-[0.15] animate-float animation-delay-3000"></div>
+        <div className="absolute top-1/2 right-1/3 opacity-[0.1] animate-float animation-delay-2000">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#14b8a6" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="12,2 15,9 22,9 17,14 19,22 12,17 5,22 7,14 2,9 9,9"/>
+          </svg>
+        </div>
+        <div className="absolute bottom-1/4 right-1/2 opacity-[0.08] animate-float animation-delay-4000">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#8b5cf6" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+
+        {/* Animated Particles */}
+        <div className="absolute top-10 left-1/4 w-1 h-1 bg-teal-400/40 rounded-full animate-particle"></div>
+        <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-purple-400/40 rounded-full animate-particle animation-delay-2000"></div>
+        <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-pink-400/40 rounded-full animate-particle animation-delay-4000"></div>
+        <div className="absolute top-2/3 right-1/4 w-1 h-1 bg-cyan-400/40 rounded-full animate-particle animation-delay-1000"></div>
+        <div className="absolute bottom-1/2 left-1/3 w-1 h-1 bg-teal-400/40 rounded-full animate-particle animation-delay-3000"></div>
+
+        {/* Watercolor Wash Effects */}
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-to-br from-teal-100/15 via-cyan-50/10 to-transparent rounded-full blur-[150px]"></div>
+        <div className="absolute bottom-0 right-0 w-[700px] h-[700px] bg-gradient-to-tl from-purple-100/15 via-pink-50/10 to-transparent rounded-full blur-[150px]"></div>
+
+        {/* Paper Texture Overlay */}
+        <div className="absolute inset-0 opacity-[0.02] mix-blend-multiply" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E")`,
+          backgroundSize: '200px 200px'
+        }}></div>
+      </div>
+
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white shadow-sm border-b border-gray-100 z-50">
+      <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             {/* Logo and Brand */}
@@ -242,7 +351,7 @@ const Dashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-500 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-500 to-purple-600 bg-clip-text text-transparent">
                 PlanTogether
               </h1>
             </div>
@@ -272,12 +381,12 @@ const Dashboard = () => {
             </div>
 
             {/* Date & Time Display */}
-            <div className="hidden lg:flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
+            <div className="hidden lg:flex items-center gap-6 text-lg">
+              <div className="flex items-center gap-2 text-gray-800">
                 <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span className="font-medium">
+                <span className="font-bold">
                   {currentDateTime.toLocaleDateString('en-US', { 
                     weekday: 'short', 
                     month: 'short', 
@@ -286,11 +395,11 @@ const Dashboard = () => {
                   })}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-gray-800">
                 <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="font-medium">
+                <span className="font-bold">
                   {currentDateTime.toLocaleTimeString('en-US', { 
                     hour: '2-digit', 
                     minute: '2-digit'
@@ -307,7 +416,7 @@ const Dashboard = () => {
               {/* Logout Button */}
               <button
               onClick={handleLogout}
-              className="px-5 py-2 text-gray-600 hover:text-gray-900 font-medium border border-gray-300 rounded-lg hover:border-gray-400 hover:shadow-md transition-all duration-200 flex items-center gap-2 group"
+              className="px-5 py-2 text-gray-600  hover:text-gray-900 font-medium border border-gray-300 rounded-lg hover:border-gray-400 hover:shadow-md transition-all duration-200 flex items-center gap-2 group text-xl"
               style={{ transition: 'all 0.2s ease, box-shadow 0.3s ease' }}
               onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(20, 184, 166, 0.15)'}
               onMouseLeave={(e) => e.currentTarget.style.boxShadow = ''}
@@ -323,97 +432,81 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content with top padding for fixed header */}
-      <main className="max-w-7xl mx-auto px-6 pt-28 pb-12">
-        {/* Event Time Filter Tabs */}
-        <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
-          <button
-            onClick={() => setEventTimeFilter('all')}
-            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap ${
-              eventTimeFilter === 'all'
-                ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg'
-                : 'bg-white text-gray-600 border border-gray-200 hover:border-teal-300'
-            }`}
-          >
-            All Events
-          </button>
-          <button
-            onClick={() => setEventTimeFilter('upcoming')}
-            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap flex items-center gap-2 ${
-              eventTimeFilter === 'upcoming'
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
-                : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300'
-            }`}
-          >
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            Upcoming
-          </button>
-          <button
-            onClick={() => setEventTimeFilter('happening')}
-            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap flex items-center gap-2 ${
-              eventTimeFilter === 'happening'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
-                : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
-            }`}
-          >
-            <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
-            Happening Now
-          </button>
-          <button
-            onClick={() => setEventTimeFilter('past')}
-            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap ${
-              eventTimeFilter === 'past'
-                ? 'bg-gradient-to-r from-gray-500 to-slate-500 text-white shadow-lg'
-                : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            Past Events
-          </button>
-        </div>
-
-        {/* Search and Filter Bar */}
-        <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search Bar */}
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search events by name or description..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base"
-              />
-            </div>
-
-            {/* Sort Dropdown */}
-            <div className="flex gap-3">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base font-medium bg-white cursor-pointer"
-              >
-                <option value="date">Sort by Date</option>
-                <option value="popularity">Sort by Votes</option>
-                <option value="name">Sort by Name</option>
-              </select>
-
-              {/* Filter Category */}
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value as any)}
-                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base font-medium bg-white cursor-pointer"
-              >
-                <option value="all">All Categories</option>
-                <option value="social">Social</option>
-                <option value="work">Work</option>
-                <option value="celebration">Celebration</option>
-              </select>
-            </div>
+      <main className="max-w-7xl mx-auto px-6 pt-28 pb-12 relative z-10">
+        {/* Event Time Filter Tabs with Search and Sort */}
+        <div className="mb-6 flex flex-col lg:flex-row gap-4 items-stretch">
+          {/* Filter Tabs */}
+          <div className="flex gap-3 overflow-x-auto pb-2 lg:pb-0">
+            <button
+              onClick={() => setEventTimeFilter('all')}
+              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap ${
+                eventTimeFilter === 'all'
+                  ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-teal-300'
+              }`}
+            >
+              All Events
+            </button>
+            <button
+              onClick={() => setEventTimeFilter('upcoming')}
+              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+                eventTimeFilter === 'upcoming'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300'
+              }`}
+            >
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              Upcoming
+            </button>
+            <button
+              onClick={() => setEventTimeFilter('happening')}
+              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+                eventTimeFilter === 'happening'
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
+              }`}
+            >
+              <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
+              Happening Now
+            </button>
+            <button
+              onClick={() => setEventTimeFilter('past')}
+              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap ${
+                eventTimeFilter === 'past'
+                  ? 'bg-gradient-to-r from-gray-500 to-slate-500 text-white shadow-lg'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              Past Events
+            </button>
           </div>
+
+          {/* Search Bar */}
+          <div className="flex-1 relative min-w-[300px]">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search events..."
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base bg-white"
+            />
+          </div>
+
+          {/* Sort Dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base font-medium bg-white cursor-pointer min-w-[180px]"
+          >
+            <option value="date">Sort by Date</option>
+            <option value="popularity">Sort by Votes</option>
+            <option value="name">Sort by Name</option>
+          </select>
         </div>
 
         {/* Page Title and Create Button */}
@@ -423,7 +516,7 @@ const Dashboard = () => {
               {userData?.role === 'admin' ? 'Your Events' : 'Available Events'}
             </h2>
             <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-teal-400 rounded-full mb-4"></div>
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-500 text-xl">
               {userData?.role === 'admin' 
                 ? 'Manage and track all your planning activities' 
                 : 'View and participate in events'}
@@ -434,7 +527,7 @@ const Dashboard = () => {
           {userData?.role === 'admin' && (
             <Link
               to="/create-event"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg whitespace-nowrap"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-xl text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg whitespace-nowrap"
               style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -655,32 +748,6 @@ const Dashboard = () => {
                           </div>
                         </div>
                       )}
-
-                      {/* Stats Row - Larger Icons and Text */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3 text-base text-gray-700">
-                          <svg className="w-6 h-6 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="font-bold">{dateOptionsCount} date options</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-base text-gray-700">
-                          <svg className="w-6 h-6 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <span className="font-bold">
-                            {participantsCount > 0 ? `${participantsCount} participants` : 'Be the first to join!'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-base text-gray-700">
-                          <svg className="w-6 h-6 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                          </svg>
-                          <span className="font-bold">
-                            {commentsCount > 0 ? `${commentsCount} comments` : 'Start the conversation'}
-                          </span>
-                        </div>
-                      </div>
                     </div>
 
                     {/* Bottom Bar with Vote Progress */}
@@ -828,6 +895,62 @@ const Dashboard = () => {
             opacity: 1;
             transform: translateX(0);
           }
+        }
+        @keyframes blob {
+          0%, 100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+        }
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-20px);
+          }
+        }
+        @keyframes particle {
+          0% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-100px) translateX(20px);
+            opacity: 0;
+          }
+        }
+        .animate-blob {
+          animation: blob 20s infinite;
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        .animate-particle {
+          animation: particle 8s ease-in-out infinite;
+        }
+        .animation-delay-1000 {
+          animation-delay: 1s;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-3000 {
+          animation-delay: 3s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        .bg-gradient-radial {
+          background: radial-gradient(circle, var(--tw-gradient-stops));
         }
       `}</style>
     </div>
