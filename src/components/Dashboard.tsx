@@ -418,17 +418,53 @@ const Dashboard = () => {
               const categoryColors = getCategoryColor(category);
               const statusColors = getStatusColor(status);
               
-              // Format event creation date/time
-              const eventDate = event.createdAt?.toDate?.() || new Date();
-              const formattedDate = eventDate.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric',
-                year: 'numeric'
-              });
-              const formattedTime = eventDate.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit'
-              });
+              // Get the most voted date option (winning date)
+              const getMostVotedDate = () => {
+                if (!event.dateOptions || event.dateOptions.length === 0) return null;
+                
+                let maxVotes = 0;
+                let winningDate = event.dateOptions[0];
+                
+                event.dateOptions.forEach((dateOption: string) => {
+                  const voteData = event.votes?.[dateOption];
+                  const voteCount = typeof voteData === 'object' ? voteData.count || 0 : voteData || 0;
+                  if (voteCount > maxVotes) {
+                    maxVotes = voteCount;
+                    winningDate = dateOption;
+                  }
+                });
+                
+                return { date: winningDate, votes: maxVotes };
+              };
+              
+              const mostVoted = getMostVotedDate();
+              
+              // Format the winning date for display
+              const formatEventDate = (dateStr: string) => {
+                try {
+                  // Try to parse the date string
+                  const date = new Date(dateStr);
+                  if (!isNaN(date.getTime())) {
+                    return {
+                      date: date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric',
+                        weekday: 'short'
+                      }),
+                      time: date.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit'
+                      })
+                    };
+                  }
+                } catch (e) {
+                  // If parsing fails, return the original string
+                }
+                return { date: dateStr, time: null };
+              };
+              
+              const formattedEventDate = mostVoted ? formatEventDate(mostVoted.date) : null;
 
               return (
                 <div key={event.id} className="group">
@@ -472,23 +508,43 @@ const Dashboard = () => {
                         {event.description || 'No description provided'}
                       </p>
 
-                      {/* Date & Time Created - Larger and Bolder */}
-                      <div className="mb-6 p-4 bg-gradient-to-r from-teal-100 to-cyan-100 rounded-xl border-2 border-teal-200 shadow-sm">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-2.5">
-                            <svg className="w-6 h-6 text-teal-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      {/* Event Date & Time - Highlighted with Winner Badge */}
+                      {formattedEventDate && mostVoted ? (
+                        <div className="mb-6 p-5 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 rounded-xl border-2 border-purple-300 shadow-lg relative overflow-hidden">
+                          <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 text-xs font-bold rounded-bl-xl flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
-                            <span className="font-bold text-gray-900 text-lg">{formattedDate}</span>
+                            {mostVoted.votes > 0 ? `${mostVoted.votes} votes` : 'Top Choice'}
                           </div>
-                          <div className="flex items-center gap-2.5">
-                            <svg className="w-6 h-6 text-teal-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="font-bold text-gray-900 text-lg">{formattedTime}</span>
+                          <div className="pr-20">
+                            <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-2">Event Date</p>
+                            <div className="flex items-center gap-3 mb-2">
+                              <svg className="w-7 h-7 text-purple-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="font-extrabold text-gray-900 text-xl">{formattedEventDate.date}</span>
+                            </div>
+                            {formattedEventDate.time && (
+                              <div className="flex items-center gap-3">
+                                <svg className="w-7 h-7 text-purple-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="font-extrabold text-gray-900 text-xl">{formattedEventDate.time}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="mb-6 p-5 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl border-2 border-gray-300 shadow-sm">
+                          <div className="flex items-center gap-3 text-gray-600">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="font-bold text-base">No date options available</span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Stats Row - Larger Icons and Text */}
                       <div className="space-y-3">
