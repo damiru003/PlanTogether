@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
+import Notifications from './Notifications';
 
 const Dashboard = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'popularity' | 'name'>('date');
   const [filterCategory, setFilterCategory] = useState<'all' | 'social' | 'work' | 'celebration'>('all');
+  const [eventTimeFilter, setEventTimeFilter] = useState<'all' | 'upcoming' | 'happening' | 'past'>('all');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,8 +46,23 @@ const Dashboard = () => {
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
           const eventsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setEvents(eventsList);
-          setFilteredEvents(eventsList);
+          
+          // Filter events based on privacy
+          const filteredByPrivacy = eventsList.filter((event: any) => {
+            // Admins see all events
+            if (currentUserRole === 'admin') return true;
+            
+            // Public events visible to everyone
+            if (!event.privacy || event.privacy === 'public') return true;
+            
+            // Private events only visible to host
+            if (event.privacy === 'private' && event.hostId === auth.currentUser?.uid) return true;
+            
+            return false;
+          });
+          
+          setEvents(filteredByPrivacy);
+          setFilteredEvents(filteredByPrivacy);
           setLoading(false);
         });
 
@@ -81,6 +98,14 @@ const Dashboard = () => {
       filtered = filtered.filter(event => event.category === filterCategory);
     }
 
+    // Event time filter (past, happening, upcoming)
+    if (eventTimeFilter !== 'all') {
+      filtered = filtered.filter(event => {
+        const status = getEventStatus(event);
+        return status === eventTimeFilter;
+      });
+    }
+
     // Sorting
     if (sortBy === 'date') {
       filtered.sort((a, b) => {
@@ -99,7 +124,7 @@ const Dashboard = () => {
     }
 
     setFilteredEvents(filtered);
-  }, [events, searchQuery, sortBy, filterCategory]);
+  }, [events, searchQuery, sortBy, filterCategory, eventTimeFilter]);
 
   const getEventCategory = (event: any): 'social' | 'work' | 'celebration' => {
     // Intelligent category detection based on keywords
@@ -109,14 +134,37 @@ const Dashboard = () => {
     return 'social';
   };
 
-  const getEventStatus = (event: any): 'upcoming' | 'active' | 'completed' => {
+  const getEventStatus = (event: any): 'upcoming' | 'happening' | 'past' => {
     const now = new Date();
-    const eventDate = event.createdAt?.toDate?.() || now;
-    const daysDiff = Math.floor((now.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (daysDiff > 30) return 'completed';
-    if (daysDiff > 7) return 'active';
-    return 'upcoming';
+    // Get the most voted date
+    if (!event.dateOptions || event.dateOptions.length === 0) return 'upcoming';
+    
+    let maxVotes = 0;
+    let winningDate = event.dateOptions[0];
+    
+    event.dateOptions.forEach((dateOption: string) => {
+      const voteData = event.votes?.[dateOption];
+      const voteCount = typeof voteData === 'object' ? voteData.count || 0 : voteData || 0;
+      if (voteCount > maxVotes) {
+        maxVotes = voteCount;
+        winningDate = dateOption;
+      }
+    });
+    
+    try {
+      const eventDate = new Date(winningDate);
+      if (isNaN(eventDate.getTime())) return 'upcoming';
+      
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfEventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+      
+      if (startOfEventDay < startOfToday) return 'past';
+      if (startOfEventDay.getTime() === startOfToday.getTime()) return 'happening';
+      return 'upcoming';
+    } catch (e) {
+      return 'upcoming';
+    }
   };
 
   const getCategoryColor = (category: 'social' | 'work' | 'celebration') => {
@@ -128,11 +176,11 @@ const Dashboard = () => {
     return colors[category];
   };
 
-  const getStatusColor = (status: 'upcoming' | 'active' | 'completed') => {
+  const getStatusColor = (status: 'upcoming' | 'happening' | 'past') => {
     const colors = {
       upcoming: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
-      active: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
-      completed: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' }
+      happening: { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' },
+      past: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' }
     };
     return colors[status];
   };
@@ -251,8 +299,13 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Logout Button */}
-            <button
+            {/* Right Side - Notifications and Logout */}
+            <div className="flex items-center gap-4">
+              {/* Notifications */}
+              <Notifications />
+
+              {/* Logout Button */}
+              <button
               onClick={handleLogout}
               className="px-5 py-2 text-gray-600 hover:text-gray-900 font-medium border border-gray-300 rounded-lg hover:border-gray-400 hover:shadow-md transition-all duration-200 flex items-center gap-2 group"
               style={{ transition: 'all 0.2s ease, box-shadow 0.3s ease' }}
@@ -266,10 +319,57 @@ const Dashboard = () => {
             </button>
           </div>
         </div>
+      </div>
       </header>
 
       {/* Main Content with top padding for fixed header */}
       <main className="max-w-7xl mx-auto px-6 pt-28 pb-12">
+        {/* Event Time Filter Tabs */}
+        <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
+          <button
+            onClick={() => setEventTimeFilter('all')}
+            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap ${
+              eventTimeFilter === 'all'
+                ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg'
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-teal-300'
+            }`}
+          >
+            All Events
+          </button>
+          <button
+            onClick={() => setEventTimeFilter('upcoming')}
+            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap flex items-center gap-2 ${
+              eventTimeFilter === 'upcoming'
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300'
+            }`}
+          >
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            Upcoming
+          </button>
+          <button
+            onClick={() => setEventTimeFilter('happening')}
+            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap flex items-center gap-2 ${
+              eventTimeFilter === 'happening'
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
+            }`}
+          >
+            <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
+            Happening Now
+          </button>
+          <button
+            onClick={() => setEventTimeFilter('past')}
+            className={`px-6 py-3 rounded-xl font-bold text-base transition-all whitespace-nowrap ${
+              eventTimeFilter === 'past'
+                ? 'bg-gradient-to-r from-gray-500 to-slate-500 text-white shadow-lg'
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            Past Events
+          </button>
+        </div>
+
         {/* Search and Filter Bar */}
         <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex flex-col lg:flex-row gap-4">
@@ -498,10 +598,20 @@ const Dashboard = () => {
                         </div>
                       </div>
 
-                      {/* Title - Increased from 24px to 36px */}
-                      <h3 className="text-4xl font-bold text-gray-900 mb-4 pr-4 group-hover:text-teal-600 transition-colors leading-tight">
-                        {event.name}
-                      </h3>
+                      {/* Title with Privacy Badge */}
+                      <div className="flex items-start gap-3 mb-4">
+                        <h3 className="flex-1 text-4xl font-bold text-gray-900 group-hover:text-teal-600 transition-colors leading-tight">
+                          {event.name}
+                        </h3>
+                        {event.privacy === 'private' && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 border border-orange-300 rounded-lg">
+                            <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-xs font-bold text-orange-700">Private</span>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Description */}
                       <p className="text-gray-600 text-lg mb-6 line-clamp-2 leading-relaxed">

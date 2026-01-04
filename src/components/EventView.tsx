@@ -14,6 +14,14 @@ const EventView = () => {
   const [userData, setUserData] = useState<any>(null);
   const [showTimeline, setShowTimeline] = useState(false);
   const [voteAnimation, setVoteAnimation] = useState(false);
+  const [rsvpStatus, setRsvpStatus] = useState<'going' | 'not-going' | 'maybe' | null>(null);
+  const [itemVotes, setItemVotes] = useState<string[]>([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    location: ''
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -102,6 +110,127 @@ const EventView = () => {
     setVote('');
   };
 
+  // Handle RSVP
+  const handleRSVP = async (status: 'going' | 'not-going' | 'maybe') => {
+    if (!isRSVPAllowed()) return;
+    
+    const userId = auth.currentUser?.uid || 'anonymous';
+    const userName = userData?.name || auth.currentUser?.email || 'Anonymous';
+    
+    const currentRSVPs = event.rsvps || [];
+    const existingRSVPIndex = currentRSVPs.findIndex((r: any) => r.userId === userId);
+    
+    let newRSVPs;
+    if (existingRSVPIndex !== -1) {
+      // Update existing RSVP
+      newRSVPs = [...currentRSVPs];
+      newRSVPs[existingRSVPIndex] = { userId, name: userName, status, timestamp: new Date().toISOString() };
+    } else {
+      // Add new RSVP
+      newRSVPs = [...currentRSVPs, { userId, name: userName, status, timestamp: new Date().toISOString() }];
+    }
+    
+    await updateDoc(doc(db, 'events', id!), { rsvps: newRSVPs });
+    setRsvpStatus(status);
+  };
+
+  // Handle Item Voting
+  const handleItemVote = async (item: string) => {
+    const userId = auth.currentUser?.uid || 'anonymous';
+    const userName = userData?.name || auth.currentUser?.email || 'Anonymous';
+    
+    const itemVotesData = event.itemVotes || {};
+    
+    if (!itemVotesData[item]) {
+      itemVotesData[item] = { count: 0, voters: [] };
+    }
+    
+    const hasVoted = itemVotesData[item].voters?.some((v: any) => v.id === userId);
+    
+    if (hasVoted) {
+      // Remove vote
+      itemVotesData[item].voters = itemVotesData[item].voters.filter((v: any) => v.id !== userId);
+      itemVotesData[item].count = Math.max(0, (itemVotesData[item].count || 0) - 1);
+      setItemVotes(itemVotes.filter(i => i !== item));
+    } else {
+      // Add vote
+      itemVotesData[item].count = (itemVotesData[item].count || 0) + 1;
+      itemVotesData[item].voters = [...(itemVotesData[item].voters || []), { id: userId, name: userName }];
+      setItemVotes([...itemVotes, item]);
+    }
+    
+    await updateDoc(doc(db, 'events', id!), { itemVotes: itemVotesData });
+  };
+
+  // Check if RSVP is allowed (6 hours before event)
+  const isRSVPAllowed = () => {
+    if (!event?.dateOptions || event.dateOptions.length === 0) return true;
+    
+    let maxVotes = 0;
+    let winningDate = event.dateOptions[0];
+    
+    event.dateOptions.forEach((dateOption: string) => {
+      const voteData = event.votes?.[dateOption];
+      const voteCount = typeof voteData === 'object' ? voteData.count || 0 : voteData || 0;
+      if (voteCount > maxVotes) {
+        maxVotes = voteCount;
+        winningDate = dateOption;
+      }
+    });
+    
+    try {
+      const eventDate = new Date(winningDate);
+      if (isNaN(eventDate.getTime())) return true;
+      
+      const now = new Date();
+      const rsvpDeadline = new Date(eventDate.getTime() - (6 * 60 * 60 * 1000));
+      
+      return now < rsvpDeadline;
+    } catch (e) {
+      return true;
+    }
+  };
+
+  // Get user's current RSVP status
+  const getUserRSVP = () => {
+    if (!event?.rsvps) return null;
+    const userId = auth.currentUser?.uid || 'anonymous';
+    const rsvp = event.rsvps.find((r: any) => r.userId === userId);
+    return rsvp?.status || null;
+  };
+
+  // Get RSVP counts
+  const getRSVPCounts = () => {
+    if (!event?.rsvps) return { going: 0, maybe: 0, notGoing: 0 };
+    return {
+      going: event.rsvps.filter((r: any) => r.status === 'going').length,
+      maybe: event.rsvps.filter((r: any) => r.status === 'maybe').length,
+      notGoing: event.rsvps.filter((r: any) => r.status === 'not-going').length
+    };
+  };
+
+  // Load user's RSVP and item votes
+  useEffect(() => {
+    if (event && auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      
+      // Load RSVP status
+      const userRSVP = getUserRSVP();
+      setRsvpStatus(userRSVP);
+      
+      // Load item votes
+      if (event.itemVotes) {
+        const votedItems: string[] = [];
+        Object.keys(event.itemVotes).forEach(item => {
+          if (event.itemVotes[item].voters?.some((v: any) => v.id === userId)) {
+            votedItems.push(item);
+          }
+        });
+        setItemVotes(votedItems);
+      }
+    }
+  }, [event]);
+
   // Check if user has already voted for the selected option
   const hasUserVoted = () => {
     if (!vote || !event?.votes || !event.votes[vote]) return false;
@@ -111,6 +240,83 @@ const EventView = () => {
       return voteData.voters.some((v: any) => v.id === userId);
     }
     return false;
+  };
+
+  // Check if voting is still allowed (before event happens)
+  const isVotingAllowed = () => {
+    if (!event?.dateOptions || event.dateOptions.length === 0) return true;
+    
+    // Get the most voted (winning) date
+    let maxVotes = 0;
+    let winningDate = event.dateOptions[0];
+    
+    event.dateOptions.forEach((dateOption: string) => {
+      const voteData = event.votes?.[dateOption];
+      const voteCount = typeof voteData === 'object' ? voteData.count || 0 : voteData || 0;
+      if (voteCount > maxVotes) {
+        maxVotes = voteCount;
+        winningDate = dateOption;
+      }
+    });
+    
+    try {
+      const eventDate = new Date(winningDate);
+      if (isNaN(eventDate.getTime())) return true; // If date is invalid, allow voting
+      
+      const now = new Date();
+      // Voting closes 1 hour before the event starts
+      const votingDeadline = new Date(eventDate.getTime() - (1 * 60 * 60 * 1000));
+      
+      return now < votingDeadline;
+    } catch (e) {
+      return true; // If there's an error parsing, allow voting
+    }
+  };
+
+  // Get voting deadline message
+  const getVotingDeadlineMessage = () => {
+    if (!event?.dateOptions || event.dateOptions.length === 0) return null;
+    
+    // Get the most voted (winning) date
+    let maxVotes = 0;
+    let winningDate = event.dateOptions[0];
+    
+    event.dateOptions.forEach((dateOption: string) => {
+      const voteData = event.votes?.[dateOption];
+      const voteCount = typeof voteData === 'object' ? voteData.count || 0 : voteData || 0;
+      if (voteCount > maxVotes) {
+        maxVotes = voteCount;
+        winningDate = dateOption;
+      }
+    });
+    
+    try {
+      const eventDate = new Date(winningDate);
+      if (isNaN(eventDate.getTime())) return null;
+      
+      const now = new Date();
+      const votingDeadline = new Date(eventDate.getTime() - (1 * 60 * 60 * 1000));
+      
+      if (now >= eventDate) {
+        return { type: 'past', message: '⏰ This event has already happened. Voting is closed.' };
+      } else if (now >= votingDeadline) {
+        return { type: 'closed', message: '⏰ Voting is closed. The event is happening soon!' };
+      } else {
+        const hoursLeft = Math.floor((votingDeadline.getTime() - now.getTime()) / (1000 * 60 * 60));
+        const daysLeft = Math.floor(hoursLeft / 24);
+        
+        if (daysLeft > 0) {
+          return { type: 'open', message: `⏳ Voting closes in ${daysLeft} day${daysLeft > 1 ? 's' : ''} (1 hour before event)` };
+        } else if (hoursLeft > 0) {
+          return { type: 'open', message: `⏳ Voting closes in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} (1 hour before event)` };
+        } else {
+          const minutesLeft = Math.floor((votingDeadline.getTime() - now.getTime()) / (1000 * 60));
+          return { type: 'urgent', message: `⚠️ Voting closes in ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}!` };
+        }
+      }
+    } catch (e) {
+      return null;
+    }
   };
 
   const handleComment = async () => {
@@ -147,6 +353,35 @@ const EventView = () => {
         console.error('Error deleting event:', error);
         alert('Failed to delete event. Please try again.');
       }
+    }
+  };
+
+  const handleEditEvent = () => {
+    if (!event) return;
+    setEditFormData({
+      name: event.name || '',
+      description: event.description || '',
+      location: event.location || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editFormData.name.trim()) {
+      alert('Event name is required');
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'events', id!), {
+        name: editFormData.name,
+        description: editFormData.description,
+        location: editFormData.location
+      });
+      setShowEditModal(false);
+    } catch (error) {
+      console.error('Error updating event:', error);
+      alert('Failed to update event. Please try again.');
     }
   };
 
@@ -199,6 +434,80 @@ const EventView = () => {
     }
   };
 
+  // Generate .ics calendar file
+  const downloadCalendarFile = () => {
+    if (!event) return;
+    
+    // Get the winning date
+    let winningDate = '';
+    if (event.dateOptions && event.dateOptions.length > 0) {
+      let maxVotes = 0;
+      winningDate = event.dateOptions[0];
+      
+      event.dateOptions.forEach((dateOption: string) => {
+        const voteData = event.votes?.[dateOption];
+        const voteCount = typeof voteData === 'object' ? voteData.count || 0 : voteData || 0;
+        if (voteCount > maxVotes) {
+          maxVotes = voteCount;
+          winningDate = dateOption;
+        }
+      });
+    }
+    
+    if (!winningDate) {
+      alert('No date selected for this event yet');
+      return;
+    }
+    
+    try {
+      const eventDate = new Date(winningDate);
+      if (isNaN(eventDate.getTime())) {
+        alert('Invalid event date');
+        return;
+      }
+      
+      // Format dates for iCalendar format (YYYYMMDDTHHmmssZ)
+      const formatICSDate = (date: Date) => {
+        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      };
+      
+      const startDate = formatICSDate(eventDate);
+      const endDate = formatICSDate(new Date(eventDate.getTime() + 2 * 60 * 60 * 1000)); // 2 hours later
+      const now = formatICSDate(new Date());
+      
+      const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//PlanTogether//Event//EN',
+        'BEGIN:VEVENT',
+        `UID:${event.id}@plantogether.app`,
+        `DTSTAMP:${now}`,
+        `DTSTART:${startDate}`,
+        `DTEND:${endDate}`,
+        `SUMMARY:${event.name}`,
+        `DESCRIPTION:${event.description?.replace(/\n/g, '\\n') || 'No description'}`,
+        event.location ? `LOCATION:${event.location}` : '',
+        `URL:${window.location.href}`,
+        'STATUS:CONFIRMED',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].filter(Boolean).join('\r\n');
+      
+      // Create and download file
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${event.name.replace(/[^a-z0-9]/gi, '_')}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error generating calendar file:', error);
+      alert('Failed to generate calendar file');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -246,6 +555,7 @@ const EventView = () => {
               {/* Edit Button */}
               {(userData?.role === 'admin' || event?.hostId === auth.currentUser?.uid) && (
                 <button
+                  onClick={handleEditEvent}
                   className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 hover:shadow-lg transition-all duration-200"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -301,6 +611,17 @@ const EventView = () => {
                   </div>
                 </div>
               </div>
+              
+              {/* Add to Calendar Button */}
+              <button
+                onClick={downloadCalendarFile}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 hover:shadow-lg transition-all duration-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Add to Calendar
+              </button>
             </div>
           </div>
         </div>
@@ -472,9 +793,29 @@ const EventView = () => {
                     </svg>
                     Vote on Date
                   </h2>
-                  <p className="text-purple-700 font-semibold mb-6 text-base">
-                    Select your preferred date and help decide when this event happens!
-                  </p>
+                  
+                  {/* Voting Deadline Message */}
+                  {(() => {
+                    const deadlineMsg = getVotingDeadlineMessage();
+                    if (deadlineMsg) {
+                      const bgColor = deadlineMsg.type === 'past' || deadlineMsg.type === 'closed' ? 'bg-red-100 border-red-300' : 
+                                     deadlineMsg.type === 'urgent' ? 'bg-orange-100 border-orange-300' : 
+                                     'bg-blue-100 border-blue-300';
+                      const textColor = deadlineMsg.type === 'past' || deadlineMsg.type === 'closed' ? 'text-red-700' : 
+                                       deadlineMsg.type === 'urgent' ? 'text-orange-700' : 
+                                       'text-blue-700';
+                      return (
+                        <div className={`mb-6 p-4 rounded-lg border-2 ${bgColor} ${textColor} font-semibold text-base`}>
+                          {deadlineMsg.message}
+                        </div>
+                      );
+                    }
+                    return (
+                      <p className="text-purple-700 font-semibold mb-6 text-base">
+                        📅 Select your preferred date and help decide when this event happens!
+                      </p>
+                    );
+                  })()}
                   <div className="flex gap-4">
                     <div className="flex-1 relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -485,9 +826,12 @@ const EventView = () => {
                       <select
                         value={vote}
                         onChange={(e) => setVote(e.target.value)}
-                        className="w-full pl-14 pr-4 py-5 text-lg border-3 border-purple-300 rounded-xl focus:ring-4 focus:ring-purple-400 focus:border-purple-500 outline-none transition-all duration-200 font-bold bg-white shadow-lg hover:shadow-xl"
+                        disabled={!isVotingAllowed()}
+                        className={`w-full pl-14 pr-4 py-5 text-lg border-3 rounded-xl focus:ring-4 focus:ring-purple-400 focus:border-purple-500 outline-none transition-all duration-200 font-bold shadow-lg hover:shadow-xl ${
+                          isVotingAllowed() ? 'border-purple-300 bg-white cursor-pointer' : 'border-gray-300 bg-gray-100 cursor-not-allowed opacity-60'
+                        }`}
                       >
-                        <option value="">Select a date option...</option>
+                        <option value="">{isVotingAllowed() ? 'Select a date option...' : 'Voting is closed'}</option>
                         {event.dateOptions?.map((opt: string) => (
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
@@ -496,9 +840,9 @@ const EventView = () => {
                     {hasUserVoted() ? (
                       <button
                         onClick={handleRemoveVote}
-                        disabled={!vote}
+                        disabled={!vote || !isVotingAllowed()}
                         className={`px-10 py-5 text-xl font-black rounded-xl focus:outline-none focus:ring-4 focus:ring-red-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
-                          vote 
+                          vote && isVotingAllowed()
                             ? 'bg-gradient-to-r from-red-600 via-orange-600 to-red-600 text-white hover:from-red-700 hover:via-orange-700 hover:to-red-700 hover:shadow-3xl hover:scale-110 cursor-pointer' 
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
                         }`}
@@ -513,9 +857,9 @@ const EventView = () => {
                     ) : (
                       <button
                         onClick={handleVote}
-                        disabled={!vote}
+                        disabled={!vote || !isVotingAllowed()}
                         className={`px-10 py-5 text-xl font-black rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
-                          vote 
+                          vote && isVotingAllowed()
                             ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 hover:shadow-3xl hover:scale-110 animate-pulse cursor-pointer' 
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
                         }`}
@@ -659,24 +1003,166 @@ const EventView = () => {
 
             {/* Right Column - Enhanced Info Cards */}
             <div className="space-y-8">
-              {/* Items/Activities - Enhanced */}
+              {/* RSVP Section */}
+              <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-green-50 rounded-2xl shadow-xl border-3 border-green-300 p-8 hover:shadow-2xl transition-all duration-300">
+                <h3 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-700 to-emerald-700 mb-4 flex items-center gap-3">
+                  <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                  </svg>
+                  RSVP - Are You Coming?
+                </h3>
+                
+                {/* RSVP Status Message */}
+                {!isRSVPAllowed() && (
+                  <div className="mb-4 p-3 bg-red-100 border-2 border-red-300 rounded-lg text-red-700 font-semibold text-sm">
+                    ⏰ RSVP is closed (6 hours before event)
+                  </div>
+                )}
+                
+                {/* RSVP Buttons */}
+                <div className="space-y-3 mb-6">
+                  <button
+                    onClick={() => handleRSVP('going')}
+                    disabled={!isRSVPAllowed()}
+                    className={`w-full py-4 px-6 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-between ${
+                      rsvpStatus === 'going'
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg scale-105'
+                        : isRSVPAllowed()
+                        ? 'bg-white border-2 border-green-300 text-green-700 hover:bg-green-50 hover:scale-102'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      I'm Going
+                    </span>
+                    {rsvpStatus === 'going' && <span className="text-sm">✓ Selected</span>}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleRSVP('maybe')}
+                    disabled={!isRSVPAllowed()}
+                    className={`w-full py-4 px-6 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-between ${
+                      rsvpStatus === 'maybe'
+                        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg scale-105'
+                        : isRSVPAllowed()
+                        ? 'bg-white border-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 hover:scale-102'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                      Maybe
+                    </span>
+                    {rsvpStatus === 'maybe' && <span className="text-sm">✓ Selected</span>}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleRSVP('not-going')}
+                    disabled={!isRSVPAllowed()}
+                    className={`w-full py-4 px-6 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-between ${
+                      rsvpStatus === 'not-going'
+                        ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg scale-105'
+                        : isRSVPAllowed()
+                        ? 'bg-white border-2 border-red-300 text-red-700 hover:bg-red-50 hover:scale-102'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      Can't Make It
+                    </span>
+                    {rsvpStatus === 'not-going' && <span className="text-sm">✓ Selected</span>}
+                  </button>
+                </div>
+                
+                {/* RSVP Summary */}
+                {(() => {
+                  const counts = getRSVPCounts();
+                  const total = counts.going + counts.maybe + counts.notGoing;
+                  return total > 0 ? (
+                    <div className="pt-4 border-t-2 border-green-200">
+                      <p className="text-sm font-bold text-gray-600 mb-3">Response Summary:</p>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-700 flex items-center gap-2">
+                            <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                            Going
+                          </span>
+                          <span className="font-bold text-green-700">{counts.going}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-700 flex items-center gap-2">
+                            <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                            Maybe
+                          </span>
+                          <span className="font-bold text-yellow-700">{counts.maybe}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-700 flex items-center gap-2">
+                            <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                            Not Going
+                          </span>
+                          <span className="font-bold text-red-700">{counts.notGoing}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+
+              {/* Items/Activities with Voting */}
               {event.items && event.items.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
                   <h3 className="text-2xl font-bold text-gray-900 mb-5 flex items-center gap-3">
                     <svg className="w-7 h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
-                    Items & Activities
+                    Vote on Items & Activities
                   </h3>
+                  <p className="text-sm text-gray-600 mb-4">Select items you prefer (multiple choices allowed)</p>
                   <ul className="space-y-3">
-                    {event.items.map((item: string, i: number) => (
-                      <li key={i} className="flex items-center gap-3 text-gray-700 p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg hover:from-teal-50 hover:to-cyan-50 transition-all duration-200 group">
-                        <svg className="w-7 h-7 text-green-500 flex-shrink-0 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-base font-medium">{item}</span>
-                      </li>
-                    ))}
+                    {event.items.map((item: string, i: number) => {
+                      const itemVoteData = event.itemVotes?.[item] || { count: 0, voters: [] };
+                      const voteCount = itemVoteData.count || 0;
+                      const isVoted = itemVotes.includes(item);
+                      
+                      return (
+                        <li key={i}>
+                          <button
+                            onClick={() => handleItemVote(item)}
+                            className={`w-full flex items-center justify-between gap-3 text-gray-700 p-4 rounded-lg transition-all duration-200 ${
+                              isVoted
+                                ? 'bg-gradient-to-r from-teal-100 to-cyan-100 border-2 border-teal-400 shadow-md'
+                                : 'bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 hover:from-teal-50 hover:to-cyan-50 hover:border-teal-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <svg className={`w-7 h-7 flex-shrink-0 transition-all ${
+                                isVoted ? 'text-teal-600 scale-110' : 'text-gray-400'
+                              }`} fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span className={`text-base font-medium ${isVoted ? 'text-teal-900 font-bold' : ''}`}>{item}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-bold ${isVoted ? 'text-teal-700' : 'text-gray-500'}`}>
+                                {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+                              </span>
+                              {isVoted && (
+                                <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded-full">✓ Voted</span>
+                              )}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -818,11 +1304,106 @@ const EventView = () => {
         </main>
       )}
 
+      {/* Edit Event Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slideIn">
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-gray-900">Edit Event</h2>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Event Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Event Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                    placeholder="Event name"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={editFormData.description}
+                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                    rows={4}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
+                    placeholder="Event description"
+                  />
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.location}
+                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                    placeholder="Event location"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 mt-8 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold px-6 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-lg transition-all"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Animation Styles */}
       <style>{`
         @keyframes pulse {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.05); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { transform: translateY(-20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out;
         }
       `}</style>
     </div>
