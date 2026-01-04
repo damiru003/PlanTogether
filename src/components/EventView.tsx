@@ -75,6 +75,44 @@ const EventView = () => {
     setVote('');
   };
 
+  const handleRemoveVote = async () => {
+    if (!vote) return;
+    
+    const userId = auth.currentUser?.uid || 'anonymous';
+    const newVotes = { ...event.votes };
+    
+    // Check if this vote option exists and has the new format
+    if (!newVotes[vote] || typeof newVotes[vote] === 'number') {
+      alert('Unable to remove vote from this option');
+      return;
+    }
+    
+    // Check if user has voted for this option
+    const hasVoted = newVotes[vote].voters?.some((v: any) => v.id === userId);
+    if (!hasVoted) {
+      alert('You have not voted for this option');
+      return;
+    }
+    
+    // Remove user from voters list
+    newVotes[vote].voters = newVotes[vote].voters.filter((v: any) => v.id !== userId);
+    newVotes[vote].count = Math.max(0, (newVotes[vote].count || 0) - 1);
+    
+    await updateDoc(doc(db, 'events', id!), { votes: newVotes });
+    setVote('');
+  };
+
+  // Check if user has already voted for the selected option
+  const hasUserVoted = () => {
+    if (!vote || !event?.votes || !event.votes[vote]) return false;
+    const userId = auth.currentUser?.uid || 'anonymous';
+    const voteData = event.votes[vote];
+    if (typeof voteData === 'object' && voteData.voters) {
+      return voteData.voters.some((v: any) => v.id === userId);
+    }
+    return false;
+  };
+
   const handleComment = async () => {
     if (!comment.trim()) return;
     const newComment = {
@@ -413,39 +451,84 @@ const EventView = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Event Info & Voting */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Voting Section */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-shadow duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                  <svg className="w-7 h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              {/* Voting Section - Highlighted Card */}
+              <div className="relative bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 rounded-2xl shadow-2xl border-4 border-purple-300 p-8 hover:shadow-3xl transition-all duration-300 overflow-hidden">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl -z-0"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-teal-200/30 to-cyan-200/30 rounded-full blur-3xl -z-0"></div>
+                
+                {/* Highlight badge */}
+                <div className="absolute top-6 right-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full text-xs font-extrabold shadow-lg flex items-center gap-2 animate-pulse">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
-                  Vote on Date
-                </h2>
-                <div className="flex gap-4">
-                  <div className="flex-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <svg className="h-6 w-6 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                      </svg>
+                  CAST YOUR VOTE
+                </div>
+
+                <div className="relative z-10">
+                  <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 via-pink-600 to-purple-700 mb-6 flex items-center gap-3">
+                    <svg className="w-9 h-9 text-purple-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Vote on Date
+                  </h2>
+                  <p className="text-purple-700 font-semibold mb-6 text-base">
+                    Select your preferred date and help decide when this event happens!
+                  </p>
+                  <div className="flex gap-4">
+                    <div className="flex-1 relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg className="h-7 w-7 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <select
+                        value={vote}
+                        onChange={(e) => setVote(e.target.value)}
+                        className="w-full pl-14 pr-4 py-5 text-lg border-3 border-purple-300 rounded-xl focus:ring-4 focus:ring-purple-400 focus:border-purple-500 outline-none transition-all duration-200 font-bold bg-white shadow-lg hover:shadow-xl"
+                      >
+                        <option value="">Select a date option...</option>
+                        {event.dateOptions?.map((opt: string) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
                     </div>
-                    <select
-                      value={vote}
-                      onChange={(e) => setVote(e.target.value)}
-                      className="w-full pl-14 pr-4 py-4 text-lg border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all duration-200 font-medium"
-                    >
-                      <option value="">Select a date option...</option>
-                      {event.dateOptions?.map((opt: string) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+                    {hasUserVoted() ? (
+                      <button
+                        onClick={handleRemoveVote}
+                        disabled={!vote}
+                        className={`px-10 py-5 text-xl font-black rounded-xl focus:outline-none focus:ring-4 focus:ring-red-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
+                          vote 
+                            ? 'bg-gradient-to-r from-red-600 via-orange-600 to-red-600 text-white hover:from-red-700 hover:via-orange-700 hover:to-red-700 hover:shadow-3xl hover:scale-110 cursor-pointer' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          Remove Vote
+                        </div>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleVote}
+                        disabled={!vote}
+                        className={`px-10 py-5 text-xl font-black rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
+                          vote 
+                            ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 hover:shadow-3xl hover:scale-110 animate-pulse cursor-pointer' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
+                          </svg>
+                          Vote
+                        </div>
+                      </button>
+                    )}
                   </div>
-                  <button
-                    onClick={handleVote}
-                    disabled={!vote}
-                    className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-lg font-bold rounded-xl hover:from-purple-700 hover:to-purple-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md transform hover:scale-105"
-                  >
-                    Vote
-                  </button>
                 </div>
               </div>
 
