@@ -381,9 +381,9 @@ const Login = () => {
 
           {/* Footer Links */}
           <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200 flex items-center justify-center gap-3 md:gap-4 text-xs md:text-sm text-gray-500">
-            <a href="#" className="hover:text-gray-700 hover:underline transition-colors">Privacy Policy</a>
+            <span className="hover:text-gray-700 transition-colors cursor-default">Privacy Policy</span>
             <span>•</span>
-            <a href="#" className="hover:text-gray-700 hover:underline transition-colors">Terms of Service</a>
+            <span className="hover:text-gray-700 transition-colors cursor-default">Terms of Service</span>
           </div>
         </div>
       </div>

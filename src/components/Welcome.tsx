@@ -242,9 +242,9 @@ const Welcome = () => {
               <span className="text-xl font-bold">PlanTogether</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+              <span className="hover:text-white transition-colors cursor-default">Privacy Policy</span>
               <span>•</span>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+              <span className="hover:text-white transition-colors cursor-default">Terms of Service</span>
               <span>•</span>
               <span>© 2026 PlanTogether</span>
             </div>

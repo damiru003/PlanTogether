@@ -258,9 +258,13 @@ const EventView = () => {
     if (event && auth.currentUser) {
       const userId = auth.currentUser.uid;
       
-      // Load RSVP status
-      const userRSVP = getUserRSVP();
-      setRsvpStatus(userRSVP);
+      // Load RSVP status (inlined to avoid dependency issues)
+      if (event.rsvps) {
+        const rsvp = event.rsvps.find((r: any) => r.userId === userId);
+        setRsvpStatus(rsvp?.status || null);
+      } else {
+        setRsvpStatus(null);
+      }
       
       // Load item votes
       if (event.itemVotes) {
@@ -445,8 +449,6 @@ const EventView = () => {
     name: opt, 
     votes: event.votes[opt]?.count || event.votes[opt] || 0 
   })) || [];
-
-  const COLORS = ['#14b8a6', '#06b6d4', '#0891b2', '#0e7490', '#0d9488'];
 
   // Helper functions
   const getEventCategory = (event: any): string => {
