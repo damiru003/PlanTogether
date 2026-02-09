@@ -21,31 +21,32 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeDashboard = async () => {
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          navigate('/');
-        } else {
-          // Fetch user data from Firestore
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            setUserData(userDoc.data());
-          }
-        }
-      });
+    let unsubscribe: (() => void) | undefined;
+    let timeInterval: NodeJS.Timeout | undefined;
 
-      // Both admins and users see all events
-      let q;
-      if (auth.currentUser) {
-        const userDocRef = doc(db, 'users', auth.currentUser.uid);
-        const userSnapshot = await getDoc(userDocRef);
-        const currentUserRole = userSnapshot.data()?.role;
+    const authUnsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        // Fetch user data from Firestore
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setUserData(userDoc.data());
+        }
+
+        // Get current user role
+        const currentUserRole = userDoc.data()?.role;
         
         // Both roles see all events
-        q = query(collection(db, 'events'));
+        const q = query(collection(db, 'events'));
         
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        unsubscribe = onSnapshot(q, (snapshot) => {
           const eventsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          console.log('Raw events from Firestore:', eventsList);
           
           // Filter events based on privacy
           const filteredByPrivacy = eventsList.filter((event: any) => {
@@ -56,29 +57,37 @@ const Dashboard = () => {
             if (!event.privacy || event.privacy === 'public') return true;
             
             // Private events only visible to host
-            if (event.privacy === 'private' && event.hostId === auth.currentUser?.uid) return true;
+            if (event.privacy === 'private' && event.hostId === user.uid) return true;
             
             return false;
           });
           
+          console.log('Filtered events:', filteredByPrivacy);
+          console.log('User role:', currentUserRole);
+          
           setEvents(filteredByPrivacy);
           setFilteredEvents(filteredByPrivacy);
+          setLoading(false);
+        }, (error) => {
+          console.error('Error fetching events:', error);
           setLoading(false);
         });
 
         // Update current date/time every minute
-        const timeInterval = setInterval(() => {
+        timeInterval = setInterval(() => {
           setCurrentDateTime(new Date());
         }, 60000);
-
-        return () => {
-          unsubscribe();
-          clearInterval(timeInterval);
-        };
+      } catch (error) {
+        console.error('Error initializing dashboard:', error);
+        setLoading(false);
       }
-    };
+    });
 
-    initializeDashboard();
+    return () => {
+      authUnsubscribe();
+      if (unsubscribe) unsubscribe();
+      if (timeInterval) clearInterval(timeInterval);
+    };
   }, [navigate]);
 
   // Filter and sort events
@@ -115,8 +124,15 @@ const Dashboard = () => {
       });
     } else if (sortBy === 'popularity') {
       filtered.sort((a, b) => {
-        const votesA = Object.values(a.votes || {}).reduce((acc: any, val: any) => Number(acc) + Number(val), 0) as number;
-        const votesB = Object.values(b.votes || {}).reduce((acc: any, val: any) => Number(acc) + Number(val), 0) as number;
+        // Calculate total votes properly for new format
+        const votesA = Object.values(a.votes || {}).reduce((acc: number, val: any) => {
+          const count = typeof val === 'object' ? val.count || 0 : Number(val) || 0;
+          return acc + count;
+        }, 0);
+        const votesB = Object.values(b.votes || {}).reduce((acc: number, val: any) => {
+          const count = typeof val === 'object' ? val.count || 0 : Number(val) || 0;
+          return acc + count;
+        }, 0);
         return votesB - votesA;
       });
     } else if (sortBy === 'name') {
@@ -342,33 +358,33 @@ const Dashboard = () => {
 
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2 md:py-4">
           <div className="flex justify-between items-center">
             {/* Logo and Brand */}
-            <div className="flex items-center gap-3">
-              <div className="text-teal-500 p-2">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="text-teal-500 p-1 md:p-2">
+                <svg className="w-5 h-5 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-500 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-teal-500 to-purple-600 bg-clip-text text-transparent">
                 PlanTogether
               </h1>
             </div>
 
             {/* Center Greeting with Avatar */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3 md:gap-4">
               {/* User Avatar */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md ring-2 ring-white">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm md:text-lg shadow-md ring-2 ring-white">
                   {userData?.name?.charAt(0).toUpperCase() || auth.currentUser?.email?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-gray-900 font-bold text-base">
+                  <p className="text-gray-900 font-bold text-sm md:text-base">
                     {userData?.name || auth.currentUser?.email?.split('@')[0]}
                   </p>
                   {userData?.role && (
-                    <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${
+                    <span className={`px-2 md:px-2.5 py-0.5 text-xs font-bold rounded-full ${
                       userData.role === 'admin' 
                         ? 'bg-purple-100 text-purple-700' 
                         : 'bg-teal-100 text-teal-700'
@@ -381,9 +397,9 @@ const Dashboard = () => {
             </div>
 
             {/* Date & Time Display */}
-            <div className="hidden lg:flex items-center gap-6 text-lg">
-              <div className="flex items-center gap-2 text-gray-800">
-                <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <div className="hidden lg:flex items-center gap-4 xl:gap-6 text-sm md:text-base lg:text-lg">
+              <div className="flex items-center gap-1.5 md:gap-2 text-gray-800">
+                <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <span className="font-bold">
@@ -395,8 +411,8 @@ const Dashboard = () => {
                   })}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-gray-800">
-                <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <div className="flex items-center gap-1.5 md:gap-2 text-gray-800">
+                <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="font-bold">
@@ -409,22 +425,22 @@ const Dashboard = () => {
             </div>
 
             {/* Right Side - Notifications and Logout */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {/* Notifications */}
               <Notifications />
 
               {/* Logout Button */}
               <button
               onClick={handleLogout}
-              className="px-5 py-2 text-gray-600  hover:text-gray-900 font-medium border border-gray-300 rounded-lg hover:border-gray-400 hover:shadow-md transition-all duration-200 flex items-center gap-2 group text-xl"
+              className="px-3 sm:px-4 md:px-5 py-1.5 md:py-2 text-sm md:text-base lg:text-xl text-gray-600  hover:text-gray-900 font-medium border border-gray-300 rounded-lg hover:border-gray-400 hover:shadow-md transition-all duration-200 flex items-center gap-1 md:gap-2 group"
               style={{ transition: 'all 0.2s ease, box-shadow 0.3s ease' }}
               onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(20, 184, 166, 0.15)'}
               onMouseLeave={(e) => e.currentTarget.style.boxShadow = ''}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Logout
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
@@ -432,14 +448,14 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content with top padding for fixed header */}
-      <main className="max-w-7xl mx-auto px-6 pt-28 pb-12 relative z-10">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pt-16 sm:pt-20 md:pt-28 pb-8 md:pb-12 relative z-10">
         {/* Event Time Filter Tabs with Search and Sort */}
-        <div className="mb-6 flex flex-col lg:flex-row gap-4 items-stretch">
+        <div className="mb-4 md:mb-6 flex flex-col lg:flex-row gap-3 md:gap-4 items-stretch">
           {/* Filter Tabs */}
-          <div className="flex gap-3 overflow-x-auto pb-2 lg:pb-0">
+          <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 lg:pb-0">
             <button
               onClick={() => setEventTimeFilter('all')}
-              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap ${
+              className={`px-3 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold text-sm sm:text-base md:text-xl transition-all whitespace-nowrap ${
                 eventTimeFilter === 'all'
                   ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-teal-300'
@@ -449,7 +465,7 @@ const Dashboard = () => {
             </button>
             <button
               onClick={() => setEventTimeFilter('upcoming')}
-              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              className={`px-3 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold text-sm sm:text-base md:text-xl transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 ${
                 eventTimeFilter === 'upcoming'
                   ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300'
@@ -460,7 +476,7 @@ const Dashboard = () => {
             </button>
             <button
               onClick={() => setEventTimeFilter('happening')}
-              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+              className={`px-3 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold text-sm sm:text-base md:text-xl transition-all whitespace-nowrap flex items-center gap-1.5 md:gap-2 ${
                 eventTimeFilter === 'happening'
                   ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
@@ -471,7 +487,7 @@ const Dashboard = () => {
             </button>
             <button
               onClick={() => setEventTimeFilter('past')}
-              className={`px-6 py-3 rounded-xl font-bold text-xl transition-all whitespace-nowrap ${
+              className={`px-3 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold text-sm sm:text-base md:text-xl transition-all whitespace-nowrap ${
                 eventTimeFilter === 'past'
                   ? 'bg-gradient-to-r from-gray-500 to-slate-500 text-white shadow-lg'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
@@ -482,9 +498,9 @@ const Dashboard = () => {
           </div>
 
           {/* Search Bar */}
-          <div className="flex-1 relative min-w-[300px]">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex-1 relative min-w-[200px] sm:min-w-[300px]">
+            <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 md:h-5 md:w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -493,7 +509,7 @@ const Dashboard = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search events..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base bg-white"
+              className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-2 md:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-sm md:text-base bg-white"
             />
           </div>
 
@@ -501,7 +517,7 @@ const Dashboard = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-base font-medium bg-white cursor-pointer min-w-[180px]"
+            className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all text-sm md:text-base font-medium bg-white cursor-pointer min-w-[140px] md:min-w-[180px]"
           >
             <option value="date">Sort by Date</option>
             <option value="popularity">Sort by Votes</option>
@@ -510,13 +526,13 @@ const Dashboard = () => {
         </div>
 
         {/* Page Title and Create Button */}
-        <div className="flex items-start justify-between mb-10 gap-6">
+        <div className="flex flex-col sm:flex-row items-start justify-between mb-6 md:mb-10 gap-4 md:gap-6">
           <div>
-            <h2 className="text-5xl font-bold text-gray-900 mb-3" style={{ color: '#1f2937' }}>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-2 md:mb-3" style={{ color: '#1f2937' }}>
               {userData?.role === 'admin' ? 'Your Events' : 'Available Events'}
             </h2>
-            <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-teal-400 rounded-full mb-4"></div>
-            <p className="text-gray-500 text-xl">
+            <div className="w-12 md:w-20 h-1 bg-gradient-to-r from-teal-500 to-teal-400 rounded-full mb-2 md:mb-4"></div>
+            <p className="text-gray-500 text-sm sm:text-base md:text-lg lg:text-xl">
               {userData?.role === 'admin' 
                 ? 'Manage and track all your planning activities' 
                 : 'View and participate in events'}
@@ -527,10 +543,10 @@ const Dashboard = () => {
           {userData?.role === 'admin' && (
             <Link
               to="/create-event"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-xl text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 md:gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-sm sm:text-base md:text-lg lg:text-xl text-white font-semibold px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 rounded-full hover:from-purple-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] shadow-lg whitespace-nowrap"
               style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)' }}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Create New Event
@@ -596,11 +612,12 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map(event => {
-              const totalVotes = Object.values(event.votes || {}).reduce((a: any, b: any) => {
-                const aVal = typeof a === 'object' ? a.count || 0 : Number(a) || 0;
-                const bVal = typeof b === 'object' ? b.count || 0 : Number(b) || 0;
-                return aVal + bVal;
-              }, 0) as number;
+              // Calculate total votes properly for new format
+              const totalVotes = Object.values(event.votes || {}).reduce((acc: number, val: any) => {
+                const count = typeof val === 'object' ? val.count || 0 : Number(val) || 0;
+                return acc + count;
+              }, 0);
+              
               const dateOptionsCount = event.dateOptions?.length || 0;
               const participantsCount = event.participants?.length || 0;
               const commentsCount = event.comments?.length || 0;
@@ -660,40 +677,40 @@ const Dashboard = () => {
               const formattedEventDate = mostVoted ? formatEventDate(mostVoted.date) : null;
 
               return (
-                <div key={event.id} className="group">
+                <div key={event.id} className="group h-full">
                   <Link
                     to={`/event/${event.id}`}
-                    className="block bg-white rounded-2xl shadow-md hover:shadow-2xl border-2 border-gray-100 hover:border-teal-200 transition-all duration-300 overflow-hidden transform hover:-translate-y-2 hover:scale-[1.02]"
+                    className="flex flex-col h-full bg-white rounded-2xl shadow-md hover:shadow-2xl border-2 border-gray-100 hover:border-teal-200 transition-all duration-300 overflow-hidden transform hover:-translate-y-2 hover:scale-[1.02]"
                     style={{
                       borderLeftWidth: '6px',
                       borderLeftColor: category === 'social' ? '#3b82f6' : category === 'work' ? '#8b5cf6' : '#ec4899'
                     }}
                   >
                     {/* Card Header with Gradient Overlay */}
-                    <div className="relative p-8 pb-6 bg-gradient-to-br from-teal-50/50 via-white to-purple-50/30">
+                    <div className="relative p-5 pb-4 bg-gradient-to-br from-teal-50/50 via-white to-purple-50/30 flex-1 flex flex-col">
                       {/* Status & Category Badges */}
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex gap-2">
-                          <span className={`px-3 py-1.5 text-xs font-bold rounded-full ${statusColors.bg} ${statusColors.text} flex items-center gap-1.5`}>
+                          <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${statusColors.bg} ${statusColors.text} flex items-center gap-1.5`}>
                             <span className={`w-2 h-2 rounded-full ${statusColors.dot} animate-pulse`}></span>
                             {status.toUpperCase()}
                           </span>
-                          <span className={`px-3 py-1.5 text-xs font-bold rounded-full ${categoryColors.bg} ${categoryColors.text}`}>
+                          <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${categoryColors.bg} ${categoryColors.text}`}>
                             {category.toUpperCase()}
                           </span>
                         </div>
                         
                         {/* Calendar Icon */}
-                        <div className="bg-gradient-to-br from-teal-500 to-purple-500 p-2.5 rounded-xl shadow-lg">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                        <div className="bg-gradient-to-br from-teal-500 to-purple-500 p-2 rounded-lg shadow-md">
+                          <svg className="w-5 h-5 text-white" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         </div>
                       </div>
 
                       {/* Title with Privacy Badge */}
-                      <div className="flex items-start gap-3 mb-4">
-                        <h3 className="flex-1 text-4xl font-bold text-gray-900 group-hover:text-teal-600 transition-colors leading-tight">
+                      <div className="flex items-start gap-3 mb-2">
+                        <h3 className="flex-1 text-2xl font-bold text-gray-900 group-hover:text-teal-600 transition-colors leading-tight">
                           {event.name}
                         </h3>
                         {event.privacy === 'private' && (
@@ -707,63 +724,68 @@ const Dashboard = () => {
                       </div>
 
                       {/* Description */}
-                      <p className="text-gray-600 text-lg mb-6 line-clamp-2 leading-relaxed">
-                        {event.description || 'No description provided'}
-                      </p>
+                      <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border-l-4 border-teal-500 px-4 py-2.5 rounded-lg mb-3 flex-shrink-0">
+                        <p className="text-gray-800 text-base font-semibold line-clamp-2 leading-snug">
+                          {event.description || 'No description provided'}
+                        </p>
+                      </div>
+
+                      {/* Spacer to push date section to bottom */}
+                      <div className="flex-1"></div>
 
                       {/* Event Date & Time - Highlighted with Winner Badge */}
                       {formattedEventDate && mostVoted ? (
-                        <div className="mb-6 p-5 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 rounded-xl border-2 border-purple-300 shadow-lg relative overflow-hidden">
-                          <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 text-xs font-bold rounded-bl-xl flex items-center gap-1">
+                        <div className="mb-2 p-2.5 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 rounded-lg border-2 border-purple-300 shadow-md relative overflow-hidden">
+                          <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-0.5 text-xs font-bold rounded-bl-lg flex items-center gap-1">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
                             {mostVoted.votes > 0 ? `${mostVoted.votes} votes` : 'Top Choice'}
                           </div>
-                          <div className="pr-20">
-                            <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-2">Event Date</p>
-                            <div className="flex items-center gap-3 mb-2">
-                              <svg className="w-7 h-7 text-purple-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                          <div className="pr-16">
+                            <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-0.5">Event Date</p>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <svg className="w-5 h-5 text-purple-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              <span className="font-extrabold text-gray-900 text-xl">{formattedEventDate.date}</span>
+                              <span className="font-bold text-gray-900 text-base">{formattedEventDate.date}</span>
                             </div>
                             {formattedEventDate.time && (
-                              <div className="flex items-center gap-3">
-                                <svg className="w-7 h-7 text-purple-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                              <div className="flex items-center gap-2">
+                                <svg className="w-5 h-5 text-purple-700" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <span className="font-extrabold text-gray-900 text-xl">{formattedEventDate.time}</span>
+                                <span className="font-bold text-gray-900 text-base">{formattedEventDate.time}</span>
                               </div>
                             )}
                           </div>
                         </div>
                       ) : (
-                        <div className="mb-6 p-5 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl border-2 border-gray-300 shadow-sm">
-                          <div className="flex items-center gap-3 text-gray-600">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <div className="mb-2 p-2.5 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg border-2 border-gray-300 shadow-sm">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="font-bold text-base">No date options available</span>
+                            <span className="font-semibold text-sm">No date options available</span>
                           </div>
                         </div>
                       )}
                     </div>
 
                     {/* Bottom Bar with Vote Progress */}
-                    <div className="bg-gradient-to-r from-teal-100 to-cyan-100 px-8 py-5 border-t-2 border-teal-200 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <svg className="w-6 h-6 text-teal-700" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="bg-gradient-to-r from-teal-100 to-cyan-100 px-5 py-3 border-t-2 border-teal-200 flex items-center justify-between flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-teal-700" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
                         </svg>
                         <div>
-                          <span className="text-sm font-bold text-gray-700 block">Total Votes</span>
-                          <span className="text-2xl font-bold text-teal-700">{totalVotes > 0 ? String(totalVotes) : 'No votes yet'}</span>
+                          <span className="text-xs font-bold text-gray-700 block">Total Votes</span>
+                          <span className="text-lg font-bold text-teal-700">{totalVotes > 0 ? String(totalVotes) : 'No votes yet'}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-purple-600 font-bold text-base group-hover:gap-3 transition-all">
+                      <div className="flex items-center gap-1.5 text-purple-600 font-bold text-sm group-hover:gap-2 transition-all">
                         <span>View Event</span>
-                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                        <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                       </div>

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, Transition } from 'framer-motion';
+import Welcome from './components/Welcome';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
 import Dashboard from './components/Dashboard';
@@ -42,7 +43,22 @@ const AnimatedRoutes = () => {
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className="min-h-screen bg-gray-100"
+              style={{ minHeight: '100vh' }}
+            >
+              <Welcome />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <motion.div
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              style={{ minHeight: '100vh' }}
             >
               <Login />
             </motion.div>
@@ -57,7 +73,7 @@ const AnimatedRoutes = () => {
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className="min-h-screen bg-gray-100"
+              style={{ minHeight: '100vh' }}
             >
               <SignUp />
             </motion.div>
@@ -72,7 +88,7 @@ const AnimatedRoutes = () => {
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className="min-h-screen bg-gray-100"
+              style={{ minHeight: '100vh' }}
             >
               <Dashboard />
             </motion.div>
@@ -87,7 +103,7 @@ const AnimatedRoutes = () => {
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className="min-h-screen bg-gray-100"
+              style={{ minHeight: '100vh' }}
             >
               <CreateEvent />
             </motion.div>
@@ -102,7 +118,7 @@ const AnimatedRoutes = () => {
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className="min-h-screen bg-gray-100"
+              style={{ minHeight: '100vh' }}
             >
               <EventView />
             </motion.div>

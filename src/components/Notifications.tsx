@@ -20,26 +20,44 @@ const Notifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
 
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', auth.currentUser.uid),
-      orderBy('createdAt', 'desc'),
-      limit(10)
-    );
+    try {
+      const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', auth.currentUser.uid),
+        orderBy('createdAt', 'desc'),
+        limit(10)
+      );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notifs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Notification));
-      
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.read).length);
-    });
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const notifs = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Notification));
+        
+        setNotifications(notifs);
+        setUnreadCount(notifs.filter(n => !n.read).length);
+      }, (error) => {
+        console.error('Error fetching notifications:', error);
+        // If index is missing, just hide notifications silently
+        if (error.code === 'failed-precondition') {
+          console.warn('Firestore index required for notifications. Please create index in Firebase Console.');
+        }
+        setNotifications([]);
+        setUnreadCount(0);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up notifications query:', error);
+      setNotifications([]);
+      setUnreadCount(0);
+    }
   }, []);
 
   const markAsRead = async (notificationId: string) => {

@@ -2,39 +2,37 @@
   <defs>
     <linearGradient id="grad192" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#14b8a6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
     </linearGradient>
   </defs>
   
-  <!-- Background circle -->
-  <circle cx="96" cy="96" r="96" fill="white"/>
+  <!-- Rounded Square Background -->
+  <rect width="192" height="192" rx="42" fill="url(#grad192)"/>
   
-  <!-- Calendar background -->
-  <rect x="36" y="48" width="120" height="110" rx="16" fill="url(#grad192)"/>
-  
-  <!-- Calendar top bar -->
-  <rect x="36" y="48" width="120" height="30" rx="16" fill="#0d9488"/>
-  <rect x="36" y="66" width="120" height="12" fill="#0d9488"/>
-  
-  <!-- Calendar rings -->
-  <rect x="60" y="36" width="10" height="30" rx="5" fill="#0d9488"/>
-  <rect x="122" y="36" width="10" height="30" rx="5" fill="#0d9488"/>
-  
-  <!-- Date grid -->
-  <rect x="48" y="90" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  <rect x="72" y="90" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  <rect x="96" y="90" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  <rect x="120" y="90" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  
-  <rect x="48" y="114" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  <rect x="72" y="114" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  <rect x="96" y="114" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  <rect x="120" y="114" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  
-  <rect x="48" y="138" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  <rect x="72" y="138" width="16" height="16" rx="3" fill="white" opacity="0.95"/>
-  
-  <!-- Checkmark accent -->
-  <circle cx="108" cy="144" r="22" fill="#8b5cf6"/>
-  <path d="M 96 144 L 104 152 L 120 134" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Calendar Icon -->
+  <g transform="translate(36, 42)">
+    <!-- Calendar Body -->
+    <rect x="0" y="24" width="120" height="96" rx="12" fill="white" opacity="0.98"/>
+    
+    <!-- Calendar Header Bar -->
+    <rect x="0" y="24" width="120" height="30" rx="12" fill="white"/>
+    <rect x="0" y="36" width="120" height="18" fill="#f0fdfa"/>
+    
+    <!-- Top Binding Rings -->
+    <rect x="24" y="9" width="15" height="30" rx="7.5" fill="white"/>
+    <rect x="81" y="9" width="15" height="30" rx="7.5" fill="white"/>
+    
+    <!-- Date Grid (3x3) -->
+    <circle cx="30" cy="72" r="7.5" fill="#14b8a6" opacity="0.8"/>
+    <circle cx="60" cy="72" r="7.5" fill="#14b8a6" opacity="0.8"/>
+    <circle cx="90" cy="72" r="7.5" fill="#14b8a6" opacity="0.8"/>
+    
+    <circle cx="30" cy="96" r="7.5" fill="#06b6d4" opacity="0.8"/>
+    <circle cx="90" cy="96" r="7.5" fill="#06b6d4" opacity="0.8"/>
+    
+    <!-- Highlighted Date with Checkmark -->
+    <circle cx="60" cy="96" r="15" fill="#a855f7"/>
+    <path d="M 52.5 96 L 57 100.5 L 67.5 90" stroke="white" stroke-width="5.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>

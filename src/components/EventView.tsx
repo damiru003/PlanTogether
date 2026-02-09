@@ -30,9 +30,13 @@ const EventView = () => {
     // Fetch current user data
     const fetchUserData = async () => {
       if (auth.currentUser) {
-        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-        if (userDoc.exists()) {
-          setUserData(userDoc.data());
+        try {
+          const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
         }
       }
     };
@@ -42,9 +46,17 @@ const EventView = () => {
       const eventDoc = doc(db, 'events', id);
       const unsubscribe = onSnapshot(eventDoc, (snap) => {
         if (snap.exists()) {
-          setEvent({ id: snap.id, ...snap.data() });
+          const eventData = { id: snap.id, ...snap.data() };
+          console.log('Event updated from Firestore:', eventData);
+          setEvent(eventData);
+          setLoading(false);
+        } else {
+          console.log('Event not found');
           setLoading(false);
         }
+      }, (error) => {
+        console.error('Error fetching event:', error);
+        setLoading(false);
       });
       return () => unsubscribe();
     }
@@ -53,63 +65,93 @@ const EventView = () => {
   const handleVote = async () => {
     if (!vote) return;
     
+    if (!auth.currentUser) {
+      alert('Please sign in to vote');
+      return;
+    }
+    
     setVoteAnimation(true);
     setTimeout(() => setVoteAnimation(false), 1000);
     
     const userName = userData?.name || auth.currentUser?.email || 'Anonymous';
     const userId = auth.currentUser?.uid || 'anonymous';
     
-    // Handle both old (number) and new (object) vote formats
-    const newVotes = { ...event.votes };
-    
-    // Convert old format to new format if needed
-    if (!newVotes[vote]) {
-      newVotes[vote] = { count: 0, voters: [] };
-    } else if (typeof newVotes[vote] === 'number') {
-      // Migrate old format to new format
-      newVotes[vote] = { count: newVotes[vote], voters: [] };
-    }
-    
-    // Check if user already voted for this option
-    const hasVoted = newVotes[vote].voters?.some((v: any) => v.id === userId);
-    if (hasVoted) {
-      alert('You have already voted for this option!');
+    try {
+      // Handle both old (number) and new (object) vote formats
+      const newVotes = { ...event.votes };
+      
+      // Convert old format to new format if needed
+      if (!newVotes[vote]) {
+        newVotes[vote] = { count: 0, voters: [] };
+      } else if (typeof newVotes[vote] === 'number') {
+        // Migrate old format to new format
+        newVotes[vote] = { count: newVotes[vote], voters: [] };
+      }
+      
+      // Check if user already voted for this option
+      const hasVoted = newVotes[vote].voters?.some((v: any) => v.id === userId);
+      if (hasVoted) {
+        alert('You have already voted for this option!');
+        setVoteAnimation(false);
+        return;
+      }
+      
+      newVotes[vote].count = (newVotes[vote].count || 0) + 1;
+      newVotes[vote].voters = [...(newVotes[vote].voters || []), { id: userId, name: userName }];
+      
+      console.log('Updating votes:', newVotes);
+      
+      await updateDoc(doc(db, 'events', id!), { votes: newVotes });
+      
+      console.log('Vote updated successfully');
+      setVote('');
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('Failed to submit vote. Please try again.');
       setVoteAnimation(false);
-      return;
     }
-    
-    newVotes[vote].count = (newVotes[vote].count || 0) + 1;
-    newVotes[vote].voters = [...(newVotes[vote].voters || []), { id: userId, name: userName }];
-    
-    await updateDoc(doc(db, 'events', id!), { votes: newVotes });
-    setVote('');
   };
 
   const handleRemoveVote = async () => {
     if (!vote) return;
     
+    if (!auth.currentUser) {
+      alert('Please sign in to remove vote');
+      return;
+    }
+    
     const userId = auth.currentUser?.uid || 'anonymous';
-    const newVotes = { ...event.votes };
     
-    // Check if this vote option exists and has the new format
-    if (!newVotes[vote] || typeof newVotes[vote] === 'number') {
-      alert('Unable to remove vote from this option');
-      return;
+    try {
+      const newVotes = { ...event.votes };
+      
+      // Check if this vote option exists and has the new format
+      if (!newVotes[vote] || typeof newVotes[vote] === 'number') {
+        alert('Unable to remove vote from this option');
+        return;
+      }
+      
+      // Check if user has voted for this option
+      const hasVoted = newVotes[vote].voters?.some((v: any) => v.id === userId);
+      if (!hasVoted) {
+        alert('You have not voted for this option');
+        return;
+      }
+      
+      // Remove user from voters list
+      newVotes[vote].voters = newVotes[vote].voters.filter((v: any) => v.id !== userId);
+      newVotes[vote].count = Math.max(0, (newVotes[vote].count || 0) - 1);
+      
+      console.log('Removing vote:', newVotes);
+      
+      await updateDoc(doc(db, 'events', id!), { votes: newVotes });
+      
+      console.log('Vote removed successfully');
+      setVote('');
+    } catch (error) {
+      console.error('Error removing vote:', error);
+      alert('Failed to remove vote. Please try again.');
     }
-    
-    // Check if user has voted for this option
-    const hasVoted = newVotes[vote].voters?.some((v: any) => v.id === userId);
-    if (!hasVoted) {
-      alert('You have not voted for this option');
-      return;
-    }
-    
-    // Remove user from voters list
-    newVotes[vote].voters = newVotes[vote].voters.filter((v: any) => v.id !== userId);
-    newVotes[vote].count = Math.max(0, (newVotes[vote].count || 0) - 1);
-    
-    await updateDoc(doc(db, 'events', id!), { votes: newVotes });
-    setVote('');
   };
 
   // Handle RSVP
@@ -537,45 +579,45 @@ const EventView = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       {/* Header with Breadcrumb */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-5">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-3 md:py-5">
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+          <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-gray-600 mb-3 md:mb-4">
             <Link to="/dashboard" className="hover:text-teal-600 transition-colors font-medium">Dashboard</Link>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             <span className="hover:text-teal-600 transition-colors font-medium cursor-pointer">Events</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <span className="text-gray-900 font-semibold">{event?.name || 'Loading...'}</span>
+            <span className="text-gray-900 font-semibold truncate max-w-[150px] sm:max-w-none">{event?.name || 'Loading...'}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/dashboard" className="p-2.5 hover:bg-teal-50 rounded-xl transition-all duration-200 group">
-                <svg className="w-6 h-6 text-gray-600 group-hover:text-teal-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <div className="flex items-center gap-2 md:gap-4">
+              <Link to="/dashboard" className="p-1.5 md:p-2.5 hover:bg-teal-50 rounded-xl transition-all duration-200 group">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-600 group-hover:text-teal-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">PlanTogether</h1>
-                <p className="text-sm text-gray-500 font-medium">Event Details & Collaboration</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent">PlanTogether</h1>
+                <p className="text-xs md:text-sm text-gray-500 font-medium hidden sm:block">Event Details & Collaboration</p>
               </div>
             </div>
             
             {/* Action Buttons */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 md:gap-3">
               {/* Edit Button */}
               {(userData?.role === 'admin' || event?.hostId === auth.currentUser?.uid) && (
                 <button
                   onClick={handleEditEvent}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 hover:shadow-lg transition-all duration-200 text-xl"
+                  className="flex items-center gap-1 md:gap-2 px-2.5 sm:px-3 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 hover:shadow-lg transition-all duration-200 text-xs sm:text-sm md:text-base lg:text-xl"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit
+                  <span className="hidden sm:inline">Edit</span>
                 </button>
               )}
               
@@ -583,28 +625,28 @@ const EventView = () => {
               {(userData?.role === 'admin' || event?.hostId === auth.currentUser?.uid) && (
                 <button
                   onClick={handleDeleteEvent}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 hover:shadow-lg transition-all duration-200 text-xl"
+                  className="flex items-center gap-1 md:gap-2 px-2.5 sm:px-3 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 hover:shadow-lg transition-all duration-200 text-xs sm:text-sm md:text-base lg:text-xl"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                  Delete
+                  <span className="hidden sm:inline">Delete</span>
                 </button>
               )}
               
               {/* Share Dropdown */}
               <div className="relative group">
                 <button
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-semibold rounded-xl hover:from-teal-600 hover:to-cyan-700 hover:shadow-lg transition-all duration-200 text-xl"
+                  className="flex items-center gap-1 md:gap-2 px-2.5 sm:px-3 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-semibold rounded-xl hover:from-teal-600 hover:to-cyan-700 hover:shadow-lg transition-all duration-200 text-xs sm:text-sm md:text-base lg:text-xl"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                   </svg>
-                  Share
+                  <span className="hidden sm:inline">Share</span>
                 </button>
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="p-3 space-y-1">
-                    <button onClick={() => shareOnPlatform('whatsapp')} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50 rounded-lg transition-colors text-left">
+                <div className="absolute right-0 mt-2 w-48 md:w-56 bg-white rounded-xl shadow-2xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="p-2 md:p-3 space-y-1">
+                    <button onClick={() => shareOnPlatform('whatsapp')} className="w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 hover:bg-green-50 rounded-lg transition-colors text-left text-sm md:text-base">
                       <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                       </svg>
@@ -642,38 +684,38 @@ const EventView = () => {
       </header>
 
       {event && (
-        <main className="max-w-7xl mx-auto px-6 lg:px-10 py-10">
+        <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-6 md:py-10">
           {/* Event Cover Header */}
-          <div className="relative bg-gradient-to-r from-teal-500 via-cyan-500 to-purple-600 rounded-3xl shadow-2xl p-12 mb-10 overflow-hidden">
+          <div className="relative bg-gradient-to-r from-teal-500 via-cyan-500 to-purple-600 rounded-2xl md:rounded-3xl shadow-2xl p-6 sm:p-8 md:p-12 mb-6 md:mb-10 overflow-hidden">
             <div className="absolute inset-0 bg-black opacity-5"></div>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full -mr-48 -mt-48"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-white opacity-5 rounded-full -mr-32 md:-mr-48 -mt-32 md:-mt-48"></div>
             <div className="relative z-10">
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between mb-4 md:mb-6">
                 <div className="flex-1">
                   {/* Category & Status Badges */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="px-4 py-2 bg-white/20 backdrop-blur-md text-white font-bold rounded-full text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+                    <span className="px-2.5 sm:px-3 md:px-4 py-1.5 md:py-2 bg-white/20 backdrop-blur-md text-white font-bold rounded-full text-xs sm:text-sm flex items-center gap-1.5 md:gap-2">
+                      <svg className="w-3 h-3 md:w-4 md:h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                       </svg>
                       {getEventCategory(event)}
                     </span>
-                    <span className={`px-4 py-2 ${
+                    <span className={`px-2.5 sm:px-3 md:px-4 py-1.5 md:py-2 ${
                       getEventStatus().color === 'green' ? 'bg-green-500' :
                       getEventStatus().color === 'yellow' ? 'bg-yellow-500' : 'bg-blue-500'
-                    } text-white font-bold rounded-full text-sm flex items-center gap-2`}>
+                    } text-white font-bold rounded-full text-xs sm:text-sm flex items-center gap-1.5 md:gap-2`}>
                       <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                       {getEventStatus().label}
                     </span>
                   </div>
                   
                   {/* Event Title - 48px */}
-                  <h1 className="text-5xl lg:text-6xl font-extrabold text-white mb-4 drop-shadow-lg leading-tight">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-white mb-3 md:mb-4 drop-shadow-lg leading-tight">
                     {event.name}
                   </h1>
                   
                   {/* Description - 18px */}
-                  <p className="text-xl text-white/90 max-w-3xl leading-relaxed font-medium">
+                  <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 max-w-3xl leading-relaxed font-medium">
                     {event.description || 'No description provided'}
                   </p>
                 </div>
@@ -681,29 +723,29 @@ const EventView = () => {
               
               {/* Location with Icon - 18px */}
               {event.location && (
-                <div className="flex items-center gap-3 text-white/95 mt-6">
-                  <svg className="w-7 h-7 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <div className="flex items-center gap-2 md:gap-3 text-white/95 mt-4 md:mt-6">
+                  <svg className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-lg font-semibold">{event.location}</span>
+                  <span className="text-sm sm:text-base md:text-lg font-semibold">{event.location}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Horizontal Stats Badges - Dashboard Style */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-10">
             {/* Total Votes */}
-            <div className="bg-white rounded-2xl shadow-lg border-2 border-teal-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-teal-100 p-4 md:p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
+              <div className="flex items-center gap-2 md:gap-4">
+                <div className="p-2 md:p-4 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 md:w-8 md:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Votes</p>
-                  <p className="text-4xl font-extrabold text-gray-900 mt-1" style={{ animation: voteAnimation ? 'pulse 0.5s ease-in-out' : 'none' }}>
+                  <p className="text-xs md:text-sm font-semibold text-gray-600 uppercase tracking-wide">Votes</p>
+                  <p className="text-2xl md:text-4xl font-extrabold text-gray-900 mt-0.5 md:mt-1" style={{ animation: voteAnimation ? 'pulse 0.5s ease-in-out' : 'none' }}>
                     {String(Object.values(event?.votes || {}).reduce((a: any, b: any) => {
                       const bCount = typeof b === 'object' ? b.count : b;
                       return Number(a) + Number(bCount || 0);
