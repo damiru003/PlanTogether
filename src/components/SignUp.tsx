@@ -40,7 +40,21 @@ const SignUp = () => {
       });
       navigate('/dashboard');
     } catch (error: any) {
-      setError(error.message || 'Failed to create account');
+      console.error('Sign up error:', error.code, error.message);
+      
+      if (error.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Please login instead.');
+      } else if (error.code === 'auth/invalid-email') {
+        setError('Invalid email address format.');
+      } else if (error.code === 'auth/weak-password') {
+        setError('Password is too weak. Please use a stronger password.');
+      } else if (error.code === 'auth/internal-error') {
+        setError('Authentication service error. Please ensure Email/Password sign-in is enabled in Firebase Console.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection.');
+      } else {
+        setError(error.message || 'Failed to create account. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,7 +75,21 @@ const SignUp = () => {
       });
       navigate('/dashboard');
     } catch (error: any) {
-      setError(error.message || 'Failed to sign up with Google');
+      console.error('Google sign up error:', error.code, error.message);
+      
+      if (error.code === 'auth/internal-error') {
+        setError('Authentication service error. Please ensure Google sign-in is enabled in Firebase Console.');
+      } else if (error.code === 'auth/popup-blocked') {
+        setError('Popup was blocked. Please allow popups for this site.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in cancelled. Please try again.');
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        setError('An account with this email already exists. Please try signing in with your original method.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection.');
+      } else {
+        setError(error.message || 'Failed to sign up with Google. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

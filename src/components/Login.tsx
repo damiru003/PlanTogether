@@ -97,14 +97,24 @@ const Login = () => {
       }
       navigate('/dashboard');
     } catch (error: any) {
+      console.error('Login error:', error.code, error.message);
+      
       if (error.code === 'auth/wrong-password') {
         setError('Incorrect password. Please try again.');
       } else if (error.code === 'auth/user-not-found') {
         setError('No account found with this email.');
       } else if (error.code === 'auth/too-many-requests') {
         setError('Too many failed attempts. Please try again later.');
+      } else if (error.code === 'auth/internal-error') {
+        setError('Authentication service error. Please ensure Email/Password sign-in is enabled in Firebase Console, or try again later.');
+      } else if (error.code === 'auth/invalid-email') {
+        setError('Invalid email address format.');
+      } else if (error.code === 'auth/user-disabled') {
+        setError('This account has been disabled.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection.');
       } else {
-        setError(error.message || 'Failed to login');
+        setError(error.message || 'Failed to login. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -129,7 +139,19 @@ const Login = () => {
       }
       navigate('/dashboard');
     } catch (error: any) {
-      setError(error.message || 'Failed to login with Google');
+      console.error('Google login error:', error.code, error.message);
+      
+      if (error.code === 'auth/internal-error') {
+        setError('Authentication service error. Please ensure Google sign-in is enabled in Firebase Console.');
+      } else if (error.code === 'auth/popup-blocked') {
+        setError('Popup was blocked. Please allow popups for this site.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in cancelled. Please try again.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection.');
+      } else {
+        setError(error.message || 'Failed to login with Google. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
