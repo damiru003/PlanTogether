@@ -759,8 +759,9 @@ const EventView = () => {
                   <p className="text-xs md:text-sm font-semibold text-gray-600 uppercase tracking-wide">Votes</p>
                   <p className="text-2xl md:text-4xl font-extrabold text-gray-900 mt-0.5 md:mt-1" style={{ animation: voteAnimation ? 'pulse 0.5s ease-in-out' : 'none' }}>
                     {String(Object.values(event?.votes || {}).reduce((a: any, b: any) => {
-                      const bCount = typeof b === 'object' ? b.count : b;
-                      return Number(a) + Number(bCount || 0);
+                      const aCount = typeof a === 'object' ? a.count || 0 : a || 0;
+                      const bCount = typeof b === 'object' ? b.count || 0 : b || 0;
+                      return Number(aCount) + Number(bCount);
                     }, 0) as number)}
                   </p>
                 </div>
