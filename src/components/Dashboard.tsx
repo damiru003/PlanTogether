@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import Notifications from './Notifications';
 
@@ -16,7 +16,6 @@ const Dashboard = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'popularity' | 'name'>('date');
-  const [filterCategory, setFilterCategory] = useState<'all' | 'social' | 'work' | 'celebration'>('all');
   const [eventTimeFilter, setEventTimeFilter] = useState<'all' | 'upcoming' | 'happening' | 'past'>('all');
   const navigate = useNavigate();
 
@@ -102,11 +101,6 @@ const Dashboard = () => {
       );
     }
 
-    // Category filter
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter(event => event.category === filterCategory);
-    }
-
     // Event time filter (past, happening, upcoming)
     if (eventTimeFilter !== 'all') {
       filtered = filtered.filter(event => {
@@ -140,7 +134,7 @@ const Dashboard = () => {
     }
 
     setFilteredEvents(filtered);
-  }, [events, searchQuery, sortBy, filterCategory, eventTimeFilter]);
+  }, [events, searchQuery, sortBy, eventTimeFilter]);
 
   const getEventCategory = (event: any): 'social' | 'work' | 'celebration' => {
     // Intelligent category detection based on keywords
@@ -587,16 +581,16 @@ const Dashboard = () => {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              {searchQuery || filterCategory !== 'all' ? 'No events found' : (userData?.role === 'admin' ? 'No events yet' : 'No events available')}
+              {searchQuery ? 'No events found' : (userData?.role === 'admin' ? 'No events yet' : 'No events available')}
             </h3>
             <p className="text-gray-500 text-lg mb-8 max-w-md mx-auto">
-              {searchQuery || filterCategory !== 'all' 
+              {searchQuery 
                 ? 'Try adjusting your search or filters to find what you\'re looking for' 
                 : (userData?.role === 'admin' 
                   ? 'Start planning by creating your first event and collaborate with your team' 
                   : 'No events have been created yet. Check back later!')}
             </p>
-            {userData?.role === 'admin' && !searchQuery && filterCategory === 'all' && (
+            {userData?.role === 'admin' && !searchQuery && (
               <Link
                 to="/create-event"
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold px-8 py-4 rounded-full hover:from-purple-700 hover:to-purple-600 transform transition-all duration-200 hover:scale-[1.02] shadow-lg hover:shadow-xl"
@@ -617,10 +611,6 @@ const Dashboard = () => {
                 const count = typeof val === 'object' ? val.count || 0 : Number(val) || 0;
                 return acc + count;
               }, 0);
-              
-              const dateOptionsCount = event.dateOptions?.length || 0;
-              const participantsCount = event.participants?.length || 0;
-              const commentsCount = event.comments?.length || 0;
               
               // Get category and status
               const category = event.category || getEventCategory(event);

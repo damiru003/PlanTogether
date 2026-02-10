@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
 const EventView = () => {
   const { id } = useParams<{ id: string }>();
@@ -233,14 +233,6 @@ const EventView = () => {
     } catch (e) {
       return true;
     }
-  };
-
-  // Get user's current RSVP status
-  const getUserRSVP = () => {
-    if (!event?.rsvps) return null;
-    const userId = auth.currentUser?.uid || 'anonymous';
-    const rsvp = event.rsvps.find((r: any) => r.userId === userId);
-    return rsvp?.status || null;
   };
 
   // Get RSVP counts
