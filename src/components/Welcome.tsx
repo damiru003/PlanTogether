@@ -47,7 +47,7 @@ const Welcome = () => {
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
             Plan Events
-            <span className="block bg-gradient-to-r from-teal-500 via-cyan-500 to-purple-600 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-teal-500 via-cyan-500 to-purple-600 bg-clip-text text-transparent pb-5">
               Together, Effortlessly
             </span>
           </h1>
