@@ -665,12 +665,13 @@ const EventView = () => {
               {/* Add to Calendar Button */}
               <button
                 onClick={downloadCalendarFile}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 hover:shadow-lg transition-all duration-200 text-xl"
+                className="flex items-center gap-1 md:gap-2 px-2.5 sm:px-3 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 hover:shadow-lg transition-all duration-200 text-xs sm:text-sm md:text-base lg:text-xl"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Add to Calendar
+                <span className="hidden sm:inline">Add to Calendar</span>
+                <span className="sm:hidden">Calendar</span>
               </button>
             </div>
           </div>
@@ -750,95 +751,95 @@ const EventView = () => {
             </div>
 
             {/* Comments */}
-            <div className="bg-white rounded-2xl shadow-lg border-2 border-purple-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-purple-100 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+                <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Comments</p>
-                  <p className="text-4xl font-extrabold text-gray-900 mt-1">{event.comments?.length || 0}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wide">Comments</p>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 mt-0.5 md:mt-1">{event.comments?.length || 0}</p>
                 </div>
               </div>
             </div>
 
             {/* Date Options */}
-            <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-blue-100 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+                <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Dates</p>
-                  <p className="text-4xl font-extrabold text-gray-900 mt-1">{event.dateOptions?.length || 0}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wide">Dates</p>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 mt-0.5 md:mt-1">{event.dateOptions?.length || 0}</p>
                 </div>
               </div>
             </div>
 
             {/* Participants */}
-            <div className="bg-white rounded-2xl shadow-lg border-2 border-green-100 p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border-2 border-green-100 p-3 sm:p-4 md:p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+                <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">People</p>
-                  <p className="text-4xl font-extrabold text-gray-900 mt-1">{event.participants?.length || 0}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wide">People</p>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 mt-0.5 md:mt-1">{event.participants?.length || 0}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Participation Progress Bar */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-10">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-5 md:p-6 mb-6 md:mb-10">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <svg className="w-6 h-6 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+              <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 flex items-center gap-1.5 md:gap-2">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                 </svg>
                 Participation Rate
               </h3>
-              <span className="text-3xl font-bold text-teal-600">{getParticipationRate()}%</span>
+              <span className="text-xl sm:text-2xl md:text-3xl font-bold text-teal-600">{getParticipationRate()}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+            <div className="w-full bg-gray-200 rounded-full h-3 md:h-4 overflow-hidden">
               <div 
-                className="h-4 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-full transition-all duration-1000 ease-out"
+                className="h-3 md:h-4 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-full transition-all duration-1000 ease-out"
                 style={{ width: `${getParticipationRate()}%` }}
               ></div>
             </div>
-            <p className="text-sm text-gray-600 mt-3 font-medium">
+            <p className="text-xs sm:text-sm text-gray-600 mt-2 md:mt-3 font-medium">
               {getParticipationRate() < 30 ? '🚀 Let\'s get more people involved!' : 
                getParticipationRate() < 70 ? '👍 Good progress! Keep it up!' : 
                '🎉 Amazing participation!'}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {/* Left Column - Event Info & Voting */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6 md:space-y-8">
               {/* Voting Section - Highlighted Card */}
-              <div className="relative bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 rounded-2xl shadow-2xl border-4 border-purple-300 p-8 hover:shadow-3xl transition-all duration-300 overflow-hidden">
+              <div className="relative bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 rounded-xl md:rounded-2xl shadow-2xl border-2 sm:border-3 md:border-4 border-purple-300 p-4 sm:p-6 md:p-8 hover:shadow-3xl transition-all duration-300 overflow-hidden">
                 {/* Decorative background elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl -z-0"></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-teal-200/30 to-cyan-200/30 rounded-full blur-3xl -z-0"></div>
                 
                 {/* Highlight badge */}
-                <div className="absolute top-6 right-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full text-xs font-extrabold shadow-lg flex items-center gap-2 animate-pulse">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-6 md:right-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full text-[10px] sm:text-xs font-extrabold shadow-lg flex items-center gap-1 sm:gap-2 animate-pulse">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   CAST YOUR VOTE
                 </div>
 
                 <div className="relative z-10">
-                  <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 via-pink-600 to-purple-700 mb-6 flex items-center gap-3">
-                    <svg className="w-9 h-9 text-purple-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 via-pink-600 to-purple-700 mb-4 sm:mb-5 md:mb-6 flex items-center gap-2 md:gap-3">
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 text-purple-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                     Vote on Date
@@ -855,21 +856,21 @@ const EventView = () => {
                                        deadlineMsg.type === 'urgent' ? 'text-orange-700' : 
                                        'text-blue-700';
                       return (
-                        <div className={`mb-6 p-4 rounded-lg border-2 ${bgColor} ${textColor} font-semibold text-base`}>
+                        <div className={`mb-4 sm:mb-5 md:mb-6 p-3 sm:p-4 rounded-lg border-2 ${bgColor} ${textColor} font-semibold text-xs sm:text-sm md:text-base`}>
                           {deadlineMsg.message}
                         </div>
                       );
                     }
                     return (
-                      <p className="text-purple-700 font-semibold mb-6 text-base">
+                      <p className="text-purple-700 font-semibold mb-4 sm:mb-5 md:mb-6 text-xs sm:text-sm md:text-base">
                         📅 Select your preferred date and help decide when this event happens!
                       </p>
                     );
                   })()}
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <div className="flex-1 relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <svg className="h-7 w-7 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                         </svg>
                       </div>
@@ -877,7 +878,7 @@ const EventView = () => {
                         value={vote}
                         onChange={(e) => setVote(e.target.value)}
                         disabled={!isVotingAllowed()}
-                        className={`w-full pl-14 pr-4 py-5 text-lg border-3 rounded-xl focus:ring-4 focus:ring-purple-400 focus:border-purple-500 outline-none transition-all duration-200 font-bold shadow-lg hover:shadow-xl ${
+                        className={`w-full pl-10 sm:pl-12 md:pl-14 pr-3 sm:pr-4 py-3 sm:py-4 md:py-5 text-sm sm:text-base md:text-lg border-2 sm:border-3 rounded-xl focus:ring-2 sm:focus:ring-4 focus:ring-purple-400 focus:border-purple-500 outline-none transition-all duration-200 font-bold shadow-lg hover:shadow-xl ${
                           isVotingAllowed() ? 'border-purple-300 bg-white cursor-pointer' : 'border-gray-300 bg-gray-100 cursor-not-allowed opacity-60'
                         }`}
                       >
@@ -891,7 +892,7 @@ const EventView = () => {
                       <button
                         onClick={handleRemoveVote}
                         disabled={!vote || !isVotingAllowed()}
-                        className={`px-10 py-5 text-xl font-black rounded-xl focus:outline-none focus:ring-4 focus:ring-red-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
+                        className={`px-4 sm:px-6 md:px-10 py-3 sm:py-4 md:py-5 text-sm sm:text-base md:text-xl font-black rounded-xl focus:outline-none focus:ring-2 sm:focus:ring-4 focus:ring-red-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
                           vote && isVotingAllowed()
                             ? 'bg-gradient-to-r from-red-600 via-orange-600 to-red-600 text-white hover:from-red-700 hover:via-orange-700 hover:to-red-700 hover:shadow-3xl hover:scale-110 cursor-pointer' 
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
@@ -908,7 +909,7 @@ const EventView = () => {
                       <button
                         onClick={handleVote}
                         disabled={!vote || !isVotingAllowed()}
-                        className={`px-10 py-5 text-xl font-black rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
+                        className={`px-4 sm:px-6 md:px-10 py-3 sm:py-4 md:py-5 text-sm sm:text-base md:text-xl font-black rounded-xl focus:outline-none focus:ring-2 sm:focus:ring-4 focus:ring-purple-400 focus:ring-offset-2 transition-all duration-300 shadow-2xl transform ${
                           vote && isVotingAllowed()
                             ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 hover:shadow-3xl hover:scale-110 animate-pulse cursor-pointer' 
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
@@ -927,15 +928,44 @@ const EventView = () => {
               </div>
 
               {/* Voting Results Chart - Enhanced */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-shadow duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                  <svg className="w-7 h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6 md:p-8 hover:shadow-xl transition-shadow duration-300">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 sm:mb-5 md:mb-6 flex items-center gap-2 md:gap-3">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Voting Results
                 </h2>
                 {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={350}>
+                  <ResponsiveContainer width="100%" height={250} className="sm:hidden">
+                    <BarChart data={chartData}>
+                      <defs>
+                        <linearGradient id="voteGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#14b8a6" stopOpacity={1}/>
+                          <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.8}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '10px', fontWeight: 600 }} />
+                      <YAxis stroke="#6b7280" style={{ fontSize: '10px', fontWeight: 600 }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#fff', 
+                          border: '2px solid #14b8a6',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                          padding: '8px',
+                          fontSize: '12px',
+                          fontWeight: 600
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 600 }} />
+                      <Bar dataKey="votes" fill="url(#voteGradient)" radius={[8, 8, 0, 0]}>
+                        <LabelList dataKey="votes" position="top" style={{ fill: '#14b8a6', fontWeight: 'bold', fontSize: 12 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : null}
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={350} className="hidden sm:block">
                     <BarChart data={chartData}>
                       <defs>
                         <linearGradient id="voteGradient" x1="0" y1="0" x2="0" y2="1">
@@ -976,26 +1006,26 @@ const EventView = () => {
               </div>
 
               {/* Comments Section - Enhanced */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-shadow duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                  <svg className="w-7 h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6 md:p-8 hover:shadow-xl transition-shadow duration-300">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 sm:mb-5 md:mb-6 flex items-center gap-2 md:gap-3">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
                   Comments ({event.comments?.length || 0})
                 </h2>
                 
-                <div className="flex gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-5 md:mb-6">
                   <input
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleComment()}
                     placeholder="Share your thoughts..."
-                    className="flex-1 px-5 py-4 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all duration-200 font-medium"
+                    className="flex-1 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 text-sm sm:text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all duration-200 font-medium"
                   />
                   <button
                     onClick={handleComment}
                     disabled={!comment.trim()}
-                    className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-lg font-bold rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md transform hover:scale-105"
+                    className="px-6 sm:px-8 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm sm:text-base md:text-lg font-bold rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md transform hover:scale-105"
                   >
                     Post
                   </button>
@@ -1052,11 +1082,11 @@ const EventView = () => {
             </div>
 
             {/* Right Column - Enhanced Info Cards */}
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-6 md:space-y-8">
               {/* RSVP Section */}
-              <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-green-50 rounded-2xl shadow-xl border-3 border-green-300 p-8 hover:shadow-2xl transition-all duration-300">
-                <h3 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-700 to-emerald-700 mb-4 flex items-center gap-3">
-                  <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-green-50 rounded-xl md:rounded-2xl shadow-xl border-2 sm:border-3 border-green-300 p-4 sm:p-6 md:p-8 hover:shadow-2xl transition-all duration-300">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-700 to-emerald-700 mb-3 sm:mb-4 flex items-center gap-2 md:gap-3">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                   </svg>
                   RSVP - Are You Coming?
@@ -1064,17 +1094,17 @@ const EventView = () => {
                 
                 {/* RSVP Status Message */}
                 {!isRSVPAllowed() && (
-                  <div className="mb-4 p-3 bg-red-100 border-2 border-red-300 rounded-lg text-red-700 font-semibold text-sm">
+                  <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-100 border-2 border-red-300 rounded-lg text-red-700 font-semibold text-xs sm:text-sm">
                     ⏰ RSVP is closed (6 hours before event)
                   </div>
                 )}
                 
                 {/* RSVP Buttons */}
-                <div className="space-y-3 mb-6">
+                <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                   <button
                     onClick={() => handleRSVP('going')}
                     disabled={!isRSVPAllowed()}
-                    className={`w-full py-4 px-6 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-between ${
+                    className={`w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 flex items-center justify-between ${
                       rsvpStatus === 'going'
                         ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg scale-105'
                         : isRSVPAllowed()
@@ -1088,13 +1118,13 @@ const EventView = () => {
                       </svg>
                       I'm Going
                     </span>
-                    {rsvpStatus === 'going' && <span className="text-sm">✓ Selected</span>}
+                    {rsvpStatus === 'going' && <span className="text-xs sm:text-sm">✓ Selected</span>}
                   </button>
                   
                   <button
                     onClick={() => handleRSVP('maybe')}
                     disabled={!isRSVPAllowed()}
-                    className={`w-full py-4 px-6 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-between ${
+                    className={`w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 flex items-center justify-between ${
                       rsvpStatus === 'maybe'
                         ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg scale-105'
                         : isRSVPAllowed()
@@ -1108,13 +1138,13 @@ const EventView = () => {
                       </svg>
                       Maybe
                     </span>
-                    {rsvpStatus === 'maybe' && <span className="text-sm">✓ Selected</span>}
+                    {rsvpStatus === 'maybe' && <span className="text-xs sm:text-sm">✓ Selected</span>}
                   </button>
                   
                   <button
                     onClick={() => handleRSVP('not-going')}
                     disabled={!isRSVPAllowed()}
-                    className={`w-full py-4 px-6 rounded-xl font-bold text-base transition-all duration-300 flex items-center justify-between ${
+                    className={`w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 flex items-center justify-between ${
                       rsvpStatus === 'not-going'
                         ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg scale-105'
                         : isRSVPAllowed()
@@ -1128,7 +1158,7 @@ const EventView = () => {
                       </svg>
                       Can't Make It
                     </span>
-                    {rsvpStatus === 'not-going' && <span className="text-sm">✓ Selected</span>}
+                    {rsvpStatus === 'not-going' && <span className="text-xs sm:text-sm">✓ Selected</span>}
                   </button>
                 </div>
                 
@@ -1169,15 +1199,15 @@ const EventView = () => {
 
               {/* Items/Activities with Voting */}
               {event.items && event.items.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-5 flex items-center gap-3">
-                    <svg className="w-7 h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
+                <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6 md:p-8 hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 sm:mb-5 flex items-center gap-2 md:gap-3">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-teal-600" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={0.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                     Vote on Items & Activities
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">Select items you prefer (multiple choices allowed)</p>
-                  <ul className="space-y-3">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">Select items you prefer (multiple choices allowed)</p>
+                  <ul className="space-y-2 sm:space-y-3">
                     {event.items.map((item: string, i: number) => {
                       const itemVoteData = event.itemVotes?.[item] || { count: 0, voters: [] };
                       const voteCount = itemVoteData.count || 0;
@@ -1187,14 +1217,14 @@ const EventView = () => {
                         <li key={i}>
                           <button
                             onClick={() => handleItemVote(item)}
-                            className={`w-full flex items-center justify-between gap-3 text-gray-700 p-4 rounded-lg transition-all duration-200 ${
+                            className={`w-full flex items-center justify-between gap-2 sm:gap-3 text-gray-700 p-3 sm:p-4 rounded-lg transition-all duration-200 ${
                               isVoted
                                 ? 'bg-gradient-to-r from-teal-100 to-cyan-100 border-2 border-teal-400 shadow-md'
                                 : 'bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 hover:from-teal-50 hover:to-cyan-50 hover:border-teal-300'
                             }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <svg className={`w-7 h-7 flex-shrink-0 transition-all ${
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <svg className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 flex-shrink-0 transition-all ${
                                 isVoted ? 'text-teal-600 scale-110' : 'text-gray-400'
                               }`} fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
