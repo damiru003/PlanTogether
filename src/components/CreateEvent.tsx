@@ -136,6 +136,7 @@ const CreateEvent = () => {
         privacy: data.privacy || 'public',
         hostId: auth.currentUser?.uid,
         hostName: userData?.name || auth.currentUser?.email,
+        organization: userData?.organization || '',
         votes: {},
         comments: [],
         participants: [],

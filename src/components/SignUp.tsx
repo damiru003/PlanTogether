@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 
 const SignUp = () => {
@@ -9,13 +9,14 @@ const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [organization, setOrganization] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignUp = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword || !organization) {
       setError('Please fill in all fields');
       return;
     }
@@ -35,6 +36,7 @@ const SignUp = () => {
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         name,
         email,
+        organization,
         role,
         createdAt: new Date()
       });
@@ -67,12 +69,37 @@ const SignUp = () => {
     try {
       const result = await signInWithPopup(auth, provider);
       // Store user data in Firestore
-      await setDoc(doc(db, 'users', result.user.uid), {
-        name: result.user.displayName || 'User',
-        email: result.user.email,
-        role: 'user', // Default to user role for Google sign-up
-        createdAt: new Date()
-      });
+      // For Google sign-up, check if user already exists
+      const existingUserDoc = await getDoc(doc(db, 'users', result.user.uid));
+      if (!existingUserDoc.exists()) {
+        // New user - redirect to complete profile with organization
+        await setDoc(doc(db, 'users', result.user.uid), {
+          name: result.user.displayName || 'User',
+          email: result.user.email,
+          organization: '', // Will be set later
+          role: 'user',
+          createdAt: new Date(),
+          profileIncomplete: true
+        });
+      }
+      
+      // Check if organization is set
+      const userData = existingUserDoc.exists() ? existingUserDoc.data() : null;
+      if (!userData?.organization) {
+        // Prompt for organization
+        const org = prompt('Please enter your organization/company name:');
+        if (org) {
+          await setDoc(doc(db, 'users', result.user.uid), {
+            ...userData,
+            name: result.user.displayName || 'User',
+            email: result.user.email,
+            organization: org,
+            role: userData?.role || 'user',
+            createdAt: userData?.createdAt || new Date(),
+            profileIncomplete: false
+          });
+        }
+      }
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Google sign up error:', error.code, error.message);
@@ -132,6 +159,16 @@ const SignUp = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 text-sm md:text-base"
+              />
+            </div>
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">Organization/Company</label>
+              <input
+                type="text"
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                placeholder="Your company or organization name"
                 className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 text-sm md:text-base"
               />
             </div>

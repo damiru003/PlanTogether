@@ -44,10 +44,27 @@ const EventView = () => {
 
     if (id) {
       const eventDoc = doc(db, 'events', id);
-      const unsubscribe = onSnapshot(eventDoc, (snap) => {
+      const unsubscribe = onSnapshot(eventDoc, async (snap) => {
         if (snap.exists()) {
           const eventData = { id: snap.id, ...snap.data() };
           console.log('Event updated from Firestore:', eventData);
+          
+          // Verify user's organization matches event's organization
+          if (auth.currentUser) {
+            const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+            if (userDoc.exists()) {
+              const currentUserOrganization = userDoc.data().organization;
+              const eventOrganization = (eventData as any).organization;
+              
+              // Check if user belongs to the same organization
+              if (currentUserOrganization !== eventOrganization) {
+                alert('Access denied. This event belongs to a different organization.');
+                navigate('/dashboard');
+                return;
+              }
+            }
+          }
+          
           setEvent(eventData);
           setLoading(false);
         } else {
@@ -60,7 +77,7 @@ const EventView = () => {
       });
       return () => unsubscribe();
     }
-  }, [id]);
+  }, [id, navigate]);
 
   const handleVote = async () => {
     if (!vote) return;

@@ -91,7 +91,23 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check if user has organization set
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (!userData?.organization) {
+          const org = prompt('Please enter your organization/company name to continue:');
+          if (org) {
+            await setDoc(doc(db, 'users', userCredential.user.uid), {
+              ...userData,
+              organization: org
+            });
+          }
+        }
+      }
+      
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true');
       }
@@ -130,12 +146,27 @@ const Login = () => {
       // Check if user data exists, if not create it
       const userDoc = await getDoc(doc(db, 'users', result.user.uid));
       if (!userDoc.exists()) {
+        // New user - prompt for organization
+        const org = prompt('Welcome! Please enter your organization/company name:');
         await setDoc(doc(db, 'users', result.user.uid), {
           name: result.user.displayName || 'User',
           email: result.user.email,
+          organization: org || '',
           role: 'user',
           createdAt: new Date()
         });
+      } else {
+        // Existing user - check if organization is set
+        const userData = userDoc.data();
+        if (!userData?.organization) {
+          const org = prompt('Please enter your organization/company name to continue:');
+          if (org) {
+            await setDoc(doc(db, 'users', result.user.uid), {
+              ...userData,
+              organization: org
+            });
+          }
+        }
       }
       navigate('/dashboard');
     } catch (error: any) {

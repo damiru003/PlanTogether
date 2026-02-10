@@ -36,10 +36,11 @@ const Dashboard = () => {
           setUserData(userDoc.data());
         }
 
-        // Get current user role
+        // Get current user role and organization
         const currentUserRole = userDoc.data()?.role;
+        const currentUserOrganization = userDoc.data()?.organization;
         
-        // Both roles see all events
+        // Both roles see events from their organization only
         const q = query(collection(db, 'events'));
         
         unsubscribe = onSnapshot(q, (snapshot) => {
@@ -47,12 +48,16 @@ const Dashboard = () => {
           
           console.log('Raw events from Firestore:', eventsList);
           
-          // Filter events based on privacy
-          const filteredByPrivacy = eventsList.filter((event: any) => {
-            // Admins see all events
+          // Filter events by organization and privacy
+          const filteredByOrganization = eventsList.filter((event: any) => {
+            // Filter by organization first
+            if (event.organization !== currentUserOrganization) return false;
+            
+            // Then filter by privacy
+            // Admins see all events in their organization
             if (currentUserRole === 'admin') return true;
             
-            // Public events visible to everyone
+            // Public events visible to everyone in the organization
             if (!event.privacy || event.privacy === 'public') return true;
             
             // Private events only visible to host
@@ -61,11 +66,12 @@ const Dashboard = () => {
             return false;
           });
           
-          console.log('Filtered events:', filteredByPrivacy);
+          console.log('Filtered events:', filteredByOrganization);
           console.log('User role:', currentUserRole);
+          console.log('User organization:', currentUserOrganization);
           
-          setEvents(filteredByPrivacy);
-          setFilteredEvents(filteredByPrivacy);
+          setEvents(filteredByOrganization);
+          setFilteredEvents(filteredByOrganization);
           setLoading(false);
         }, (error) => {
           console.error('Error fetching events:', error);
