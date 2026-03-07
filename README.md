@@ -25,6 +25,3 @@ In the project directory, you can run:
 - `npm test` - launches the test runner.
 - `npm run build` - builds the app for production.
 
-## License
-
-This project is licensed under the MIT License.
